@@ -41,18 +41,18 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
+        <Button className="btn-lime w-full">
           <Plus className="w-4 h-4 mr-2" />
-          Add ICP Row
+          Manage ICPs
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bg-white">
         <DialogHeader>
-          <DialogTitle>Add ICP Data</DialogTitle>
+          <DialogTitle className="text-[var(--c-blue-dark)]">Add ICP Data</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="persona">Persona / Title</Label>
+            <Label htmlFor="persona" className="text-[var(--c-text)]">Persona / Title</Label>
             <Input
               id="persona"
               value={persona}
@@ -62,7 +62,7 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
           </div>
           
           <div>
-            <Label htmlFor="problem">Pain Point</Label>
+            <Label htmlFor="problem" className="text-[var(--c-text)]">Pain Point</Label>
             <Input
               id="problem"
               value={problem}
@@ -72,7 +72,7 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
           </div>
           
           <div>
-            <Label htmlFor="benefit">Benefit / Feature</Label>
+            <Label htmlFor="benefit" className="text-[var(--c-text)]">Benefit / Feature</Label>
             <Input
               id="benefit"
               value={benefit}
@@ -82,7 +82,7 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
           </div>
           
           <div>
-            <Label>Value Proposition</Label>
+            <Label className="text-[var(--c-text)]">Value Proposition</Label>
             <RadioGroup value={umbrella} onValueChange={setUmbrella} className="mt-2">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="Make Money" id="make-money" />
@@ -104,7 +104,7 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
           </div>
           
           <div className="flex gap-2">
-            <Button onClick={handleSave} className="flex-1">
+            <Button onClick={handleSave} className="btn-blue flex-1">
               Save ICP
             </Button>
             <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1">

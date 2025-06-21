@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -204,11 +203,11 @@ const Index = () => {
 
   const getUmbrellaColor = (umbrella: string) => {
     switch (umbrella) {
-      case 'Make Money': return 'bg-emerald-100 text-emerald-800';
-      case 'Save Money': return 'bg-blue-100 text-blue-800';
-      case 'Save Time': return 'bg-yellow-100 text-yellow-800';
-      case 'Reduce Risk': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Make Money': return 'chip';
+      case 'Save Money': return 'chip';
+      case 'Save Time': return 'chip';
+      case 'Reduce Risk': return 'chip';
+      default: return 'chip';
     }
   };
 
@@ -220,384 +219,376 @@ const Index = () => {
   })) : icpRows;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[var(--c-bg)]">
+      <div className="max-w-3xl mx-auto space-y-10 py-12 px-4">
         {/* Hero Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        <div className="text-center space-y-3">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-[var(--c-blue-dark)]">
             SAL & Pipeline Estimator
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-[var(--c-text)]">
             Turn TAM into meetings, SALs, and revenue—step by step
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Input Panel */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="w-5 h-5" />
-                Input Parameters
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Basic Inputs */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="salGoal">Target SALs (next 3 months)</Label>
+        {/* Input Panel */}
+        <Card className="card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[var(--c-blue-dark)]">
+              <Calculator className="w-5 h-5" />
+              Input Parameters
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Basic Inputs */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="salGoal" className="text-[var(--c-text)]">Target SALs (next 3 months)</Label>
+                <Input
+                  id="salGoal"
+                  type="number"
+                  value={salGoal}
+                  onChange={(e) => setSalGoal(Number(e.target.value))}
+                  className="text-right"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="valueSal" className="text-[var(--c-text)]">Value per SAL (USD)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                   <Input
-                    id="salGoal"
+                    id="valueSal"
                     type="number"
-                    value={salGoal}
-                    onChange={(e) => setSalGoal(Number(e.target.value))}
-                    className="text-right"
+                    value={valueSal}
+                    onChange={(e) => setValueSal(Number(e.target.value))}
+                    className="text-right pl-8"
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="valueSal">Value per SAL (USD)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                    <Input
-                      id="valueSal"
-                      type="number"
-                      value={valueSal}
-                      onChange={(e) => setValueSal(Number(e.target.value))}
-                      className="text-right pl-8"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Outreach channel(s)</Label>
-                  <RadioGroup value={channels} onValueChange={setChannels} className="mt-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Email" id="email" />
-                      <Label htmlFor="email" className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        Email
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="LinkedIn" id="linkedin" />
-                      <Label htmlFor="linkedin" className="flex items-center gap-2">
-                        <Linkedin className="w-4 h-4" />
-                        LinkedIn
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Both" id="both" />
-                      <Label htmlFor="both">Both</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {(channels === 'LinkedIn' || channels === 'Both') && (
-                  <div>
-                    <Label htmlFor="liAccts"># LinkedIn SDR accounts</Label>
-                    <Input
-                      id="liAccts"
-                      type="number"
-                      placeholder="4"
-                      value={liAccts}
-                      onChange={(e) => setLiAccts(Number(e.target.value))}
-                      className="text-right"
-                    />
-                  </div>
-                )}
-
-                {channels === 'Both' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="splitLI">% meetings via LinkedIn</Label>
-                      <Input
-                        id="splitLI"
-                        type="number"
-                        value={splitLI}
-                        onChange={(e) => setSplitLI(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="splitEM">% meetings via Email</Label>
-                      <Input
-                        id="splitEM"
-                        type="number"
-                        value={splitEM}
-                        onChange={(e) => setSplitEM(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* ICP Modal */}
-                <ICPModal onSave={handleICPSave} />
-
-                {/* CSV Upload */}
-                <div>
-                  <Label htmlFor="csvUpload" className="block mb-2">Upload ICP CSV (optional, overrides manual rows)</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                    <Input
-                      id="csvUpload"
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Label htmlFor="csvUpload" className="cursor-pointer">
-                      <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-600">Click to upload CSV file</p>
-                      <p className="text-xs text-gray-500 mt-1">Expected columns: Persona, Problem, Benefit, Umbrella</p>
-                    </Label>
-                  </div>
                 </div>
               </div>
 
-              {/* Advanced Defaults */}
-              <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-                <CollapsibleTrigger className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isAdvancedOpen ? 'rotate-180' : ''}`} />
-                  Advanced defaults
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="showRate">Show-Up Rate (%)</Label>
-                      <Input
-                        id="showRate"
-                        type="number"
-                        value={showRate}
-                        onChange={(e) => setShowRate(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="salPerMtg">SAL per Meeting (%)</Label>
-                      <Input
-                        id="salPerMtg"
-                        type="number"
-                        value={salPerMtg}
-                        onChange={(e) => setSalPerMtg(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="emReply">Email Reply Rate (%)</Label>
-                      <Input
-                        id="emReply"
-                        type="number"
-                        value={emReply}
-                        onChange={(e) => setEmReply(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="emPositive">Email Positive-Share (%)</Label>
-                      <Input
-                        id="emPositive"
-                        type="number"
-                        value={emPositive}
-                        onChange={(e) => setEmPositive(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="liReply">LinkedIn Reply Rate (%)</Label>
-                      <Input
-                        id="liReply"
-                        type="number"
-                        value={liReply}
-                        onChange={(e) => setLiReply(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="liPositive">LinkedIn Positive-Share (%)</Label>
-                      <Input
-                        id="liPositive"
-                        type="number"
-                        value={liPositive}
-                        onChange={(e) => setLiPositive(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="liAccept">LinkedIn Acceptance Rate (%)</Label>
-                      <Input
-                        id="liAccept"
-                        type="number"
-                        value={liAccept}
-                        onChange={(e) => setLiAccept(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="verifiedRt">Verified Contacts / TAM (%)</Label>
-                      <Input
-                        id="verifiedRt"
-                        type="number"
-                        value={verifiedRt}
-                        onChange={(e) => setVerifiedRt(Number(e.target.value))}
-                        className="text-right"
-                      />
-                    </div>
+              <div>
+                <Label className="text-[var(--c-text)]">Outreach channel(s)</Label>
+                <RadioGroup value={channels} onValueChange={setChannels} className="mt-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Email" id="email" />
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </Label>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="LinkedIn" id="linkedin" />
+                    <Label htmlFor="linkedin" className="flex items-center gap-2">
+                      <Linkedin className="w-4 h-4" />
+                      LinkedIn
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Both" id="both" />
+                    <Label htmlFor="both">Both</Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
-              <Button onClick={calculate} className="w-full" size="lg">
-                <Calculator className="w-4 h-4 mr-2" />
-                Calculate
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Results Panel */}
-          <AnimatePresence>
-            {results && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5" />
-                      Results
-                      <Button onClick={downloadResults} variant="outline" size="sm" className="ml-auto">
-                        <Download className="w-4 h-4 mr-1" />
-                        CSV
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Meetings to Book (PQLs)</span>
-                        <span className="text-right">{formatNumber(results.Y)}</span>
-                      </div>
-                      
-                      {channels !== 'Email' && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span>Meetings via LinkedIn</span>
-                          <span className="text-right">{formatNumber(results.Y_li)}</span>
-                        </div>
-                      )}
-                      
-                      {channels !== 'LinkedIn' && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span>Meetings via Email</span>
-                          <span className="text-right">{formatNumber(results.Y_em)}</span>
-                        </div>
-                      )}
-                      
-                      {channels !== 'Email' && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span>Positive Replies LinkedIn</span>
-                          <span className="text-right">{formatNumber(results.PosLI)}</span>
-                        </div>
-                      )}
-                      
-                      {channels !== 'LinkedIn' && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span>Positive Replies Email</span>
-                          <span className="text-right">{formatNumber(results.PosEM)}</span>
-                        </div>
-                      )}
-                      
-                      {channels !== 'Email' && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span>Total Replies LinkedIn</span>
-                          <span className="text-right">{formatNumber(results.RepLI)}</span>
-                        </div>
-                      )}
-                      
-                      {channels !== 'LinkedIn' && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span>Total Replies Email</span>
-                          <span className="text-right">{formatNumber(results.RepEM)}</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between py-2 border-b">
-                        <span>Verified Contacts</span>
-                        <span className="text-right">
-                          {formatNumber(results.VerLI + results.VerEM)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between py-2 border-b">
-                        <span>Required TAM</span>
-                        <span className="text-right">
-                          {formatNumber(results.TAM_LI + results.TAM_EM)}
-                        </span>
-                      </div>
-                      
-                      <div className={`flex justify-between py-2 border-b ${results.capOK !== 'OK' ? 'text-red-500' : 'text-emerald-500'}`}>
-                        <span className="flex items-center gap-2">
-                          {results.capOK === 'OK' ? 
-                            <CheckCircle className="w-4 h-4" /> : 
-                            <AlertTriangle className="w-4 h-4" />
-                          }
-                          LinkedIn Capacity Check
-                        </span>
-                        <span className="text-right font-medium">{results.capOK}</span>
-                      </div>
-                      
-                      <div className="flex justify-between py-3 border-t-2 border-blue-200 bg-blue-50 px-3 rounded">
-                        <span className="font-bold text-lg">Estimated Pipeline Value</span>
-                        <span className="text-right font-bold text-lg text-blue-600">
-                          {formatCurrency(results.pipeline)}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* ICP Persona Cards */}
-        {displayedPersonas.length > 0 && (
-          <div className="mt-12">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>ICP Personas ({displayedPersonas.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {displayedPersonas.map((persona, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Card className="h-full hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <h3 className="font-bold text-lg mb-2">{persona.persona}</h3>
-                          <p className="text-sm text-gray-600 mb-3">{persona.problem}</p>
-                          <p className="font-medium mb-3">{persona.benefit}</p>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${getUmbrellaColor(persona.umbrella)}`}>
-                            {persona.umbrella}
-                          </span>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
+              {(channels === 'LinkedIn' || channels === 'Both') && (
+                <div>
+                  <Label htmlFor="liAccts" className="text-[var(--c-text)]"># LinkedIn SDR accounts</Label>
+                  <Input
+                    id="liAccts"
+                    type="number"
+                    placeholder="4"
+                    value={liAccts}
+                    onChange={(e) => setLiAccts(Number(e.target.value))}
+                    className="text-right"
+                  />
                 </div>
-              </CardContent>
-            </Card>
+              )}
+
+              {channels === 'Both' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="splitLI" className="text-[var(--c-text)]">% meetings via LinkedIn</Label>
+                    <Input
+                      id="splitLI"
+                      type="number"
+                      value={splitLI}
+                      onChange={(e) => setSplitLI(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="splitEM" className="text-[var(--c-text)]">% meetings via Email</Label>
+                    <Input
+                      id="splitEM"
+                      type="number"
+                      value={splitEM}
+                      onChange={(e) => setSplitEM(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ICP Management */}
+              <ICPModal onSave={handleICPSave} />
+
+              {/* CSV Upload */}
+              <div>
+                <Label htmlFor="csvUpload" className="block mb-2 text-[var(--c-text)]">Upload ICP CSV (optional, overrides manual rows)</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                  <Input
+                    id="csvUpload"
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Label htmlFor="csvUpload" className="cursor-pointer">
+                    <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-600">Click to upload CSV file</p>
+                    <p className="text-xs text-gray-500 mt-1">Expected columns: Persona, Problem, Benefit, Umbrella</p>
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced Defaults */}
+            <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm text-[var(--c-text)] hover:text-[var(--c-blue)]">
+                <ChevronDown className={`w-4 h-4 transition-transform ${isAdvancedOpen ? 'rotate-180' : ''}`} />
+                Advanced defaults
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="showRate" className="text-[var(--c-text)]">Show-Up Rate (%)</Label>
+                    <Input
+                      id="showRate"
+                      type="number"
+                      value={showRate}
+                      onChange={(e) => setShowRate(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="salPerMtg" className="text-[var(--c-text)]">SAL per Meeting (%)</Label>
+                    <Input
+                      id="salPerMtg"
+                      type="number"
+                      value={salPerMtg}
+                      onChange={(e) => setSalPerMtg(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emReply" className="text-[var(--c-text)]">Email Reply Rate (%)</Label>
+                    <Input
+                      id="emReply"
+                      type="number"
+                      value={emReply}
+                      onChange={(e) => setEmReply(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emPositive" className="text-[var(--c-text)]">Email Positive-Share (%)</Label>
+                    <Input
+                      id="emPositive"
+                      type="number"
+                      value={emPositive}
+                      onChange={(e) => setEmPositive(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="liReply" className="text-[var(--c-text)]">LinkedIn Reply Rate (%)</Label>
+                    <Input
+                      id="liReply"
+                      type="number"
+                      value={liReply}
+                      onChange={(e) => setLiReply(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="liPositive" className="text-[var(--c-text)]">LinkedIn Positive-Share (%)</Label>
+                    <Input
+                      id="liPositive"
+                      type="number"
+                      value={liPositive}
+                      onChange={(e) => setLiPositive(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="liAccept" className="text-[var(--c-text)]">LinkedIn Acceptance Rate (%)</Label>
+                    <Input
+                      id="liAccept"
+                      type="number"
+                      value={liAccept}
+                      onChange={(e) => setLiAccept(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="verifiedRt" className="text-[var(--c-text)]">Verified Contacts / TAM (%)</Label>
+                    <Input
+                      id="verifiedRt"
+                      type="number"
+                      value={verifiedRt}
+                      onChange={(e) => setVerifiedRt(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Button onClick={calculate} className="btn-blue w-full mt-6" size="lg">
+              <Calculator className="w-4 h-4 mr-2" />
+              Calculate
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* ICP Summary (when personas exist) */}
+        {displayedPersonas.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-[var(--c-blue-dark)]">ICP Summary ({displayedPersonas.length} personas)</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayedPersonas.map((persona, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="h-full hover:shadow-md transition-shadow bg-white">
+                    <CardContent className="p-4">
+                      <h3 className="font-bold text-lg mb-2 text-[var(--c-blue-dark)]">{persona.persona}</h3>
+                      <p className="text-sm text-[var(--c-text)] mb-3">{persona.problem}</p>
+                      <p className="font-medium mb-3 text-[var(--c-text)]">{persona.benefit}</p>
+                      <span className={getUmbrellaColor(persona.umbrella)}>
+                        {persona.umbrella}
+                      </span>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
 
+        {/* Results Panel */}
+        <AnimatePresence>
+          {results && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-[var(--c-blue-dark)]">
+                    <TrendingUp className="w-5 h-5" />
+                    Results
+                    <Button onClick={downloadResults} variant="outline" size="sm" className="ml-auto">
+                      <Download className="w-4 h-4 mr-1" />
+                      CSV
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="font-medium">Meetings to Book (PQLs)</span>
+                      <span className="text-right">{formatNumber(results.Y)}</span>
+                    </div>
+                    
+                    {channels !== 'Email' && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Meetings via LinkedIn</span>
+                        <span className="text-right">{formatNumber(results.Y_li)}</span>
+                      </div>
+                    )}
+                    
+                    {channels !== 'LinkedIn' && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Meetings via Email</span>
+                        <span className="text-right">{formatNumber(results.Y_em)}</span>
+                      </div>
+                    )}
+                    
+                    {channels !== 'Email' && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Positive Replies LinkedIn</span>
+                        <span className="text-right">{formatNumber(results.PosLI)}</span>
+                      </div>
+                    )}
+                    
+                    {channels !== 'LinkedIn' && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Positive Replies Email</span>
+                        <span className="text-right">{formatNumber(results.PosEM)}</span>
+                      </div>
+                    )}
+                    
+                    {channels !== 'Email' && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Total Replies LinkedIn</span>
+                        <span className="text-right">{formatNumber(results.RepLI)}</span>
+                      </div>
+                    )}
+                    
+                    {channels !== 'LinkedIn' && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Total Replies Email</span>
+                        <span className="text-right">{formatNumber(results.RepEM)}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between py-2 border-b">
+                      <span>Verified Contacts</span>
+                      <span className="text-right">
+                        {formatNumber(results.VerLI + results.VerEM)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between py-2 border-b">
+                      <span>Required TAM</span>
+                      <span className="text-right">
+                        {formatNumber(results.TAM_LI + results.TAM_EM)}
+                      </span>
+                    </div>
+                    
+                    <div className={`flex justify-between py-2 border-b ${results.capOK !== 'OK' ? 'text-red-500' : 'text-emerald-500'}`}>
+                      <span className="flex items-center gap-2">
+                        {results.capOK === 'OK' ? 
+                          <CheckCircle className="w-4 h-4" /> : 
+                          <AlertTriangle className="w-4 h-4" />
+                        }
+                        LinkedIn Capacity Check
+                      </span>
+                      <span className="text-right font-medium">{results.capOK}</span>
+                    </div>
+                    
+                    <div className="flex justify-between py-3 border-t-2 border-blue-200 bg-blue-50 px-3 rounded">
+                      <span className="font-bold text-lg">Estimated Pipeline Value</span>
+                      <span className="text-right font-bold text-lg text-blue-600">
+                        {formatCurrency(results.pipeline)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-[var(--c-text)]">
           <p>Benchmarks: email reply 3%, LI reply 20%, etc. Edit under Advanced.</p>
         </div>
       </div>

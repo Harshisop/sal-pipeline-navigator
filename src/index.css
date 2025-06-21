@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,20 +38,20 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Cience Brand Colors */
+    --c-blue: #0057D9;
+    --c-blue-dark: #091E42;
+    --c-lime: #9BE42F;
+    --c-bg: #F5F8FC;
+    --c-text: #354052;
   }
 
   .dark {
@@ -98,6 +99,24 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[var(--c-bg)] text-[var(--c-text)];
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white shadow-md rounded-2xl p-8 space-y-6;
+  }
+  
+  .btn-blue {
+    @apply bg-[var(--c-blue)] text-white font-medium py-2 px-4 rounded-lg hover:bg-[var(--c-blue-dark)] transition;
+  }
+  
+  .btn-lime {
+    @apply bg-[var(--c-lime)] text-[var(--c-blue-dark)] font-medium py-2 px-4 rounded-lg hover:opacity-90 transition;
+  }
+  
+  .chip {
+    @apply inline-block bg-[var(--c-lime)] text-[var(--c-blue-dark)] text-xs px-2 py-0.5 rounded-full;
   }
 }
