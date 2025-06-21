@@ -1,11 +1,539 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, Upload, AlertTriangle, CheckCircle, Calculator, TrendingUp } from 'lucide-react';
+import Papa from 'papaparse';
+import { useToast } from '@/hooks/use-toast';
+
+interface Results {
+  yTotal: number;
+  yLI: number;
+  yEM: number;
+  posLI: number;
+  posEM: number;
+  repliesLI: number;
+  repliesEM: number;
+  verifiedLI: number;
+  verifiedEM: number;
+  tamLI: number;
+  tamEM: number;
+  liConnReq: number;
+  capOK: string;
+  pipeline: number;
+}
+
+interface PersonaData {
+  Persona: string;
+  Problem: string;
+  Benefit: string;
+  Umbrella: string;
+}
 
 const Index = () => {
+  const { toast } = useToast();
+  
+  // Form state
+  const [salGoal, setSalGoal] = useState<number>(100);
+  const [valueSal, setValueSal] = useState<number>(50000);
+  const [channels, setChannels] = useState<string>('Both');
+  const [liAccts, setLiAccts] = useState<number>(4);
+  const [splitLI, setSplitLI] = useState<number>(60);
+  const [splitEM, setSplitEM] = useState<number>(40);
+  
+  // Advanced defaults
+  const [showRate, setShowRate] = useState<number>(60);
+  const [salPerMtg, setSalPerMtg] = useState<number>(50);
+  const [emReply, setEmReply] = useState<number>(3);
+  const [emPositive, setEmPositive] = useState<number>(30);
+  const [liReply, setLiReply] = useState<number>(20);
+  const [liPositive, setLiPositive] = useState<number>(35);
+  const [liAccept, setLiAccept] = useState<number>(30);
+  const [verifiedRate, setVerifiedRate] = useState<number>(40);
+  
+  // UI state
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
+  const [results, setResults] = useState<Results | null>(null);
+  const [csvData, setCsvData] = useState<PersonaData[]>([]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.round(num));
+  };
+
+  const validateSplit = () => {
+    if (channels === 'Both' && splitLI + splitEM !== 100) {
+      toast({
+        title: "Validation Error",
+        description: "LinkedIn and Email percentages must add up to 100%",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const calculate = () => {
+    if (!validateSplit()) return;
+
+    const X = salGoal;
+    const V = valueSal;
+    const show = showRate / 100;
+    const salPM = salPerMtg / 100;
+    const yTotal = X / (show * salPM);
+
+    const pctLI = channels === 'Email' ? 0
+                : channels === 'LinkedIn' ? 100 : splitLI;
+    const pctEM = channels === 'Email' ? 100
+                : channels === 'LinkedIn' ? 0 : splitEM;
+
+    const yLI = yTotal * pctLI / 100;
+    const yEM = yTotal * pctEM / 100;
+
+    const posLI = yLI / show;
+    const posEM = yEM / show;
+
+    const repliesLI = posLI / (liPositive / 100);
+    const repliesEM = posEM / (emPositive / 100);
+
+    const emailsNeeded = repliesEM / (emReply / 100);
+    const liMsgs = repliesLI / (liReply / 100);
+    const liConnReq = liMsgs / (liAccept / 100);
+    const verifiedLI = liConnReq;
+    const verifiedEM = emailsNeeded;
+
+    const tamLI = verifiedLI / (verifiedRate / 100);
+    const tamEM = verifiedEM / (verifiedRate / 100);
+
+    const capOK = (liConnReq <= (liAccts * 500 * 3)) ? 'OK' : 'Exceeds capacity';
+    const pipeline = X * V;
+
+    const newResults: Results = {
+      yTotal, yLI, yEM, posLI, posEM, repliesLI, repliesEM,
+      verifiedLI, verifiedEM, tamLI, tamEM, liConnReq,
+      capOK, pipeline
+    };
+
+    setResults(newResults);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        const data = results.data as PersonaData[];
+        setCsvData(data.filter(row => row.Persona && row.Problem && row.Benefit && row.Umbrella));
+        toast({
+          title: "CSV Uploaded",
+          description: `Successfully loaded ${data.length} persona(s)`,
+        });
+      },
+      error: (error) => {
+        toast({
+          title: "Upload Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  const getUmbrellaColor = (umbrella: string) => {
+    switch (umbrella) {
+      case 'Make Money': return 'bg-green-100 text-green-800';
+      case 'Save Money': return 'bg-blue-100 text-blue-800';
+      case 'Save Time': return 'bg-yellow-100 text-yellow-800';
+      case 'Reduce Risk': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            SAL & Pipeline Estimator
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Map your TAM → SALs → Revenue in minutes
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Input Panel */}
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="w-5 h-5" />
+                Input Parameters
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Basic Inputs */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="salGoal">Target SALs (next 3 months)</Label>
+                  <Input
+                    id="salGoal"
+                    type="number"
+                    value={salGoal}
+                    onChange={(e) => setSalGoal(Number(e.target.value))}
+                    className="text-right"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="valueSal">Value per SAL (USD)</Label>
+                  <Input
+                    id="valueSal"
+                    type="number"
+                    value={valueSal}
+                    onChange={(e) => setValueSal(Number(e.target.value))}
+                    className="text-right"
+                  />
+                </div>
+
+                <div>
+                  <Label>Channels</Label>
+                  <RadioGroup value={channels} onValueChange={setChannels} className="mt-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Email" id="email" />
+                      <Label htmlFor="email">Email</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="LinkedIn" id="linkedin" />
+                      <Label htmlFor="linkedin">LinkedIn</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Both" id="both" />
+                      <Label htmlFor="both">Both</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {(channels === 'LinkedIn' || channels === 'Both') && (
+                  <div>
+                    <Label htmlFor="liAccts"># LinkedIn SDR accounts</Label>
+                    <Input
+                      id="liAccts"
+                      type="number"
+                      placeholder="4"
+                      value={liAccts}
+                      onChange={(e) => setLiAccts(Number(e.target.value))}
+                      className="text-right"
+                    />
+                  </div>
+                )}
+
+                {channels === 'Both' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="splitLI">% meetings via LinkedIn</Label>
+                      <Input
+                        id="splitLI"
+                        type="number"
+                        value={splitLI}
+                        onChange={(e) => setSplitLI(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="splitEM">% via Email</Label>
+                      <Input
+                        id="splitEM"
+                        type="number"
+                        value={splitEM}
+                        onChange={(e) => setSplitEM(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Advanced Defaults */}
+              <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+                <CollapsibleTrigger className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isAdvancedOpen ? 'rotate-180' : ''}`} />
+                  Advanced defaults
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="showRate">Show Rate (%)</Label>
+                      <Input
+                        id="showRate"
+                        type="number"
+                        value={showRate}
+                        onChange={(e) => setShowRate(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="salPerMtg">SAL per Meeting (%)</Label>
+                      <Input
+                        id="salPerMtg"
+                        type="number"
+                        value={salPerMtg}
+                        onChange={(e) => setSalPerMtg(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="emReply">Email Reply (%)</Label>
+                      <Input
+                        id="emReply"
+                        type="number"
+                        value={emReply}
+                        onChange={(e) => setEmReply(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="emPositive">Email Positive (%)</Label>
+                      <Input
+                        id="emPositive"
+                        type="number"
+                        value={emPositive}
+                        onChange={(e) => setEmPositive(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="liReply">LI Reply (%)</Label>
+                      <Input
+                        id="liReply"
+                        type="number"
+                        value={liReply}
+                        onChange={(e) => setLiReply(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="liPositive">LI Positive (%)</Label>
+                      <Input
+                        id="liPositive"
+                        type="number"
+                        value={liPositive}
+                        onChange={(e) => setLiPositive(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="liAccept">LI Accept (%)</Label>
+                      <Input
+                        id="liAccept"
+                        type="number"
+                        value={liAccept}
+                        onChange={(e) => setLiAccept(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="verifiedRate">Verified Rate (%)</Label>
+                      <Input
+                        id="verifiedRate"
+                        type="number"
+                        value={verifiedRate}
+                        onChange={(e) => setVerifiedRate(Number(e.target.value))}
+                        className="text-right"
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Button onClick={calculate} className="w-full" size="lg">
+                <Calculator className="w-4 h-4 mr-2" />
+                Calculate
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Results Panel */}
+          <AnimatePresence>
+            {results && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Meetings to Book (PQLs)</span>
+                        <span className="text-right">{formatNumber(results.yTotal)}</span>
+                      </div>
+                      
+                      {channels !== 'Email' && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span>Meetings via LinkedIn</span>
+                          <span className="text-right">{formatNumber(results.yLI)}</span>
+                        </div>
+                      )}
+                      
+                      {channels !== 'LinkedIn' && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span>Meetings via Email</span>
+                          <span className="text-right">{formatNumber(results.yEM)}</span>
+                        </div>
+                      )}
+                      
+                      {channels !== 'Email' && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span>Positive Replies LinkedIn</span>
+                          <span className="text-right">{formatNumber(results.posLI)}</span>
+                        </div>
+                      )}
+                      
+                      {channels !== 'LinkedIn' && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span>Positive Replies Email</span>
+                          <span className="text-right">{formatNumber(results.posEM)}</span>
+                        </div>
+                      )}
+                      
+                      {channels !== 'Email' && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span>Total Replies LinkedIn</span>
+                          <span className="text-right">{formatNumber(results.repliesLI)}</span>
+                        </div>
+                      )}
+                      
+                      {channels !== 'LinkedIn' && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span>Total Replies Email</span>
+                          <span className="text-right">{formatNumber(results.repliesEM)}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Verified Contacts</span>
+                        <span className="text-right">
+                          {formatNumber(results.verifiedLI + results.verifiedEM)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Total TAM Needed</span>
+                        <span className="text-right">
+                          {formatNumber(results.tamLI + results.tamEM)}
+                        </span>
+                      </div>
+                      
+                      <div className={`flex justify-between py-2 border-b ${results.capOK !== 'OK' ? 'text-red-600' : 'text-green-600'}`}>
+                        <span className="flex items-center gap-2">
+                          {results.capOK === 'OK' ? 
+                            <CheckCircle className="w-4 h-4" /> : 
+                            <AlertTriangle className="w-4 h-4" />
+                          }
+                          LinkedIn Capacity Check
+                        </span>
+                        <span className="text-right font-medium">{results.capOK}</span>
+                      </div>
+                      
+                      <div className="flex justify-between py-3 border-t-2 border-blue-200 bg-blue-50 px-3 rounded">
+                        <span className="font-bold text-lg">Estimated Pipeline Value</span>
+                        <span className="text-right font-bold text-lg text-blue-600">
+                          {formatCurrency(results.pipeline)}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Persona Cards Section */}
+        <div className="mt-12">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                ICP Personas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6">
+                <Label htmlFor="csvUpload" className="block mb-2">Upload ICP CSV</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                  <Input
+                    id="csvUpload"
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Label htmlFor="csvUpload" className="cursor-pointer">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-600">Click to upload CSV file</p>
+                    <p className="text-xs text-gray-500 mt-1">Expected columns: Persona, Problem, Benefit, Umbrella</p>
+                  </Label>
+                </div>
+              </div>
+
+              {csvData.length > 0 && (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {csvData.map((persona, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <Card className="h-full hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <h3 className="font-bold text-lg mb-2">{persona.Persona}</h3>
+                          <p className="text-sm text-gray-600 mb-3">{persona.Problem}</p>
+                          <p className="font-medium mb-3">{persona.Benefit}</p>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${getUmbrellaColor(persona.Umbrella)}`}>
+                            {persona.Umbrella}
+                          </span>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>Benchmarks: email reply 3%, LI reply 20%, etc. Edit under Advanced.</p>
+        </div>
       </div>
     </div>
   );
