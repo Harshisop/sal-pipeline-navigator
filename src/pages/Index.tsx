@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Upload, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, Mail, Linkedin } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, Mail, Linkedin } from 'lucide-react';
 import Papa from 'papaparse';
 import { useToast } from '@/hooks/use-toast';
 import ICPModal from '@/components/ICPModal';
@@ -147,32 +147,6 @@ const Index = () => {
     });
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      complete: (results) => {
-        const data = results.data as CSVPersonaData[];
-        const validData = data.filter(row => row.Persona && row.Problem && row.Benefit && row.Umbrella);
-        setCsvRows(validData);
-        setIcpRows([]); // Clear manual entries when CSV is uploaded
-        toast({
-          title: "CSV Uploaded",
-          description: `Successfully loaded ${validData.length} persona(s)`,
-        });
-      },
-      error: (error) => {
-        toast({
-          title: "Upload Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    });
-  };
-
   const downloadResults = () => {
     if (!results) return;
     
@@ -211,12 +185,7 @@ const Index = () => {
     }
   };
 
-  const displayedPersonas = csvRows.length > 0 ? csvRows.map(row => ({
-    persona: row.Persona,
-    problem: row.Problem,
-    benefit: row.Benefit,
-    umbrella: row.Umbrella
-  })) : icpRows;
+  const displayedPersonas = icpRows;
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)]">
@@ -225,7 +194,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center">
           <div className="flex items-center space-x-3">
             <img 
-              src="https://www.cience.com/hubfs/cience-logo-2023.svg" 
+              src="/lovable-uploads/4bd4baaa-1f9f-456e-99ce-92e40c619011.png" 
               alt="Cience" 
               className="h-8"
             />
@@ -350,25 +319,6 @@ const Index = () => {
 
             {/* ICP Management */}
             <ICPModal onSave={handleICPSave} />
-
-            {/* CSV Upload */}
-            <div className="space-y-4">
-              <Label htmlFor="csvUpload" className="block text-[var(--c-text)] font-medium">Upload ICP CSV (optional, overrides manual rows)</Label>
-              <div className="border-2 border-dashed border-[var(--c-blue)] rounded-xl p-8 text-center hover:border-[var(--c-blue-dark)] transition-colors bg-[var(--c-gray-light)]">
-                <Input
-                  id="csvUpload"
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <Label htmlFor="csvUpload" className="cursor-pointer">
-                  <Upload className="w-8 h-8 mx-auto mb-3 text-[var(--c-blue)]" />
-                  <p className="text-[var(--c-text)] font-medium">Click to upload CSV file</p>
-                  <p className="text-sm text-[var(--c-gray)] mt-2">Expected columns: Persona, Problem, Benefit, Umbrella</p>
-                </Label>
-              </div>
-            </div>
 
             {/* Advanced Defaults */}
             <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
