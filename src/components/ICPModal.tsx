@@ -41,73 +41,76 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="btn-lime w-full">
-          <Plus className="w-4 h-4 mr-2" />
+        <Button className="btn-lime w-full h-12 text-lg">
+          <Plus className="w-5 h-5 mr-3" />
           Manage ICPs
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-white">
+      <DialogContent className="bg-white rounded-3xl max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[var(--c-blue-dark)]">Add ICP Data</DialogTitle>
+          <DialogTitle className="text-2xl text-[var(--c-blue-dark)] font-bold">Add ICP Data</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="persona" className="text-[var(--c-text)]">Persona / Title</Label>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="persona" className="text-[var(--c-text)] font-medium">Persona / Title</Label>
             <Input
               id="persona"
               value={persona}
               onChange={(e) => setPersona(e.target.value)}
               placeholder="e.g., VP Sales"
+              className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)]"
             />
           </div>
           
-          <div>
-            <Label htmlFor="problem" className="text-[var(--c-text)]">Pain Point</Label>
+          <div className="space-y-2">
+            <Label htmlFor="problem" className="text-[var(--c-text)] font-medium">Pain Point</Label>
             <Input
               id="problem"
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
               placeholder="e.g., Struggling with lead generation"
+              className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)]"
             />
           </div>
           
-          <div>
-            <Label htmlFor="benefit" className="text-[var(--c-text)]">Benefit / Feature</Label>
+          <div className="space-y-2">
+            <Label htmlFor="benefit" className="text-[var(--c-text)] font-medium">Benefit / Feature</Label>
             <Input
               id="benefit"
               value={benefit}
               onChange={(e) => setBenefit(e.target.value)}
               placeholder="e.g., Automated outreach sequences"
+              className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)]"
             />
           </div>
           
-          <div>
-            <Label className="text-[var(--c-text)]">Value Proposition</Label>
-            <RadioGroup value={umbrella} onValueChange={setUmbrella} className="mt-2">
-              <div className="flex items-center space-x-2">
+          <div className="space-y-4">
+            <Label className="text-[var(--c-text)] font-medium">Value Proposition</Label>
+            <RadioGroup value={umbrella} onValueChange={setUmbrella} className="grid grid-cols-2 gap-3">
+              <div className="flex items-center space-x-3 p-3 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                 <RadioGroupItem value="Make Money" id="make-money" />
-                <Label htmlFor="make-money">Make Money</Label>
+                <Label htmlFor="make-money" className="cursor-pointer">Make Money</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 p-3 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                 <RadioGroupItem value="Save Money" id="save-money" />
-                <Label htmlFor="save-money">Save Money</Label>
+                <Label htmlFor="save-money" className="cursor-pointer">Save Money</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 p-3 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                 <RadioGroupItem value="Save Time" id="save-time" />
-                <Label htmlFor="save-time">Save Time</Label>
+                <Label htmlFor="save-time" className="cursor-pointer">Save Time</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 p-3 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                 <RadioGroupItem value="Reduce Risk" id="reduce-risk" />
-                <Label htmlFor="reduce-risk">Reduce Risk</Label>
+                <Label htmlFor="reduce-risk" className="cursor-pointer">Reduce Risk</Label>
               </div>
             </RadioGroup>
           </div>
           
-          <div className="flex gap-2">
-            <Button onClick={handleSave} className="btn-blue flex-1">
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleSave} className="btn-blue flex-1 h-12">
               Save ICP
             </Button>
-            <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+            <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1 h-12 rounded-xl border-2">
               Cancel
             </Button>
           </div>

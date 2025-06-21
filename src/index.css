@@ -47,11 +47,13 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     /* Cience Brand Colors */
-    --c-blue: #0057D9;
-    --c-blue-dark: #091E42;
-    --c-lime: #9BE42F;
-    --c-bg: #F5F8FC;
-    --c-text: #354052;
+    --c-blue: #0066FF;
+    --c-blue-dark: #003D99;
+    --c-lime: #00FF88;
+    --c-bg: #FFFFFF;
+    --c-text: #1A1A1A;
+    --c-gray-light: #F8F9FA;
+    --c-gray: #6C757D;
   }
 
   .dark {
@@ -99,24 +101,33 @@
   }
 
   body {
-    @apply bg-[var(--c-bg)] text-[var(--c-text)];
+    @apply bg-[var(--c-bg)] text-[var(--c-text)] font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white shadow-md rounded-2xl p-8 space-y-6;
+    @apply bg-white shadow-lg rounded-3xl p-8 space-y-6 border border-gray-100;
   }
   
   .btn-blue {
-    @apply bg-[var(--c-blue)] text-white font-medium py-2 px-4 rounded-lg hover:bg-[var(--c-blue-dark)] transition;
+    @apply bg-[var(--c-blue)] text-white font-semibold py-3 px-8 rounded-full hover:bg-[var(--c-blue-dark)] transition-all duration-300 shadow-lg hover:shadow-xl;
   }
   
   .btn-lime {
-    @apply bg-[var(--c-lime)] text-[var(--c-blue-dark)] font-medium py-2 px-4 rounded-lg hover:opacity-90 transition;
+    @apply bg-[var(--c-lime)] text-[var(--c-blue-dark)] font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl;
   }
   
   .chip {
-    @apply inline-block bg-[var(--c-lime)] text-[var(--c-blue-dark)] text-xs px-2 py-0.5 rounded-full;
+    @apply inline-block bg-[var(--c-lime)] text-[var(--c-blue-dark)] text-xs font-medium px-3 py-1 rounded-full;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, #0066FF 0%, #00FF88 100%);
+  }
+  
+  .section-padding {
+    @apply py-16 px-4;
   }
 }
