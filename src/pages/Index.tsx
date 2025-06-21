@@ -7,28 +7,36 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Upload, AlertTriangle, CheckCircle, Calculator, TrendingUp } from 'lucide-react';
+import { ChevronDown, Upload, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, Mail, Linkedin } from 'lucide-react';
 import Papa from 'papaparse';
 import { useToast } from '@/hooks/use-toast';
+import ICPModal from '@/components/ICPModal';
 
 interface Results {
-  yTotal: number;
-  yLI: number;
-  yEM: number;
-  posLI: number;
-  posEM: number;
-  repliesLI: number;
-  repliesEM: number;
-  verifiedLI: number;
-  verifiedEM: number;
-  tamLI: number;
-  tamEM: number;
-  liConnReq: number;
+  Y: number;
+  Y_li: number;
+  Y_em: number;
+  PosLI: number;
+  PosEM: number;
+  RepLI: number;
+  RepEM: number;
+  VerEM: number;
+  VerLI: number;
+  TAM_EM: number;
+  TAM_LI: number;
+  ConnReq: number;
   capOK: string;
   pipeline: number;
 }
 
-interface PersonaData {
+interface ICPData {
+  persona: string;
+  problem: string;
+  benefit: string;
+  umbrella: string;
+}
+
+interface CSVPersonaData {
   Persona: string;
   Problem: string;
   Benefit: string;
@@ -54,12 +62,15 @@ const Index = () => {
   const [liReply, setLiReply] = useState<number>(20);
   const [liPositive, setLiPositive] = useState<number>(35);
   const [liAccept, setLiAccept] = useState<number>(30);
-  const [verifiedRate, setVerifiedRate] = useState<number>(40);
+  const [verifiedRt, setVerifiedRt] = useState<number>(40);
+  
+  // ICP and results state
+  const [icpRows, setIcpRows] = useState<ICPData[]>([]);
+  const [csvRows, setCsvRows] = useState<CSVPersonaData[]>([]);
+  const [results, setResults] = useState<Results | null>(null);
   
   // UI state
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
-  const [results, setResults] = useState<Results | null>(null);
-  const [csvData, setCsvData] = useState<PersonaData[]>([]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -92,45 +103,49 @@ const Index = () => {
   const calculate = () => {
     if (!validateSplit()) return;
 
-    const X = salGoal;
-    const V = valueSal;
+    const X = +salGoal;
+    const V = +valueSal;
     const show = showRate / 100;
     const salPM = salPerMtg / 100;
-    const yTotal = X / (show * salPM);
+    const pctLI = channels === "Email" ? 0 : channels === "LinkedIn" ? 100 : +splitLI;
+    const pctEM = channels === "LinkedIn" ? 0 : channels === "Email" ? 100 : +splitEM;
 
-    const pctLI = channels === 'Email' ? 0
-                : channels === 'LinkedIn' ? 100 : splitLI;
-    const pctEM = channels === 'Email' ? 100
-                : channels === 'LinkedIn' ? 0 : splitEM;
+    const Y = X / (show * salPM);
+    const Y_li = Y * pctLI / 100;
+    const Y_em = Y * pctEM / 100;
 
-    const yLI = yTotal * pctLI / 100;
-    const yEM = yTotal * pctEM / 100;
+    const PosLI = Y_li / show;
+    const PosEM = Y_em / show;
 
-    const posLI = yLI / show;
-    const posEM = yEM / show;
+    const RepLI = PosLI / (liPositive / 100);
+    const RepEM = PosEM / (emPositive / 100);
 
-    const repliesLI = posLI / (liPositive / 100);
-    const repliesEM = posEM / (emPositive / 100);
+    const VerEM = RepEM / (emReply / 100);
+    const liMsgs = RepLI / (liReply / 100);
+    const ConnReq = liMsgs / (liAccept / 100);
+    const VerLI = ConnReq;
 
-    const emailsNeeded = repliesEM / (emReply / 100);
-    const liMsgs = repliesLI / (liReply / 100);
-    const liConnReq = liMsgs / (liAccept / 100);
-    const verifiedLI = liConnReq;
-    const verifiedEM = emailsNeeded;
+    const TAM_EM = VerEM / (verifiedRt / 100);
+    const TAM_LI = VerLI / (verifiedRt / 100);
 
-    const tamLI = verifiedLI / (verifiedRate / 100);
-    const tamEM = verifiedEM / (verifiedRate / 100);
-
-    const capOK = (liConnReq <= (liAccts * 500 * 3)) ? 'OK' : 'Exceeds capacity';
+    const capOK = ConnReq <= (+liAccts * 500 * 3) ? "OK" : "Exceeds capacity";
     const pipeline = X * V;
 
     const newResults: Results = {
-      yTotal, yLI, yEM, posLI, posEM, repliesLI, repliesEM,
-      verifiedLI, verifiedEM, tamLI, tamEM, liConnReq,
+      Y, Y_li, Y_em, PosLI, PosEM, RepLI, RepEM,
+      VerEM, VerLI, TAM_EM, TAM_LI, ConnReq,
       capOK, pipeline
     };
 
     setResults(newResults);
+  };
+
+  const handleICPSave = (data: ICPData) => {
+    setIcpRows(prev => [...prev, data]);
+    toast({
+      title: "ICP Added",
+      description: `Added ${data.persona} to your ICP list`,
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,11 +155,13 @@ const Index = () => {
     Papa.parse(file, {
       header: true,
       complete: (results) => {
-        const data = results.data as PersonaData[];
-        setCsvData(data.filter(row => row.Persona && row.Problem && row.Benefit && row.Umbrella));
+        const data = results.data as CSVPersonaData[];
+        const validData = data.filter(row => row.Persona && row.Problem && row.Benefit && row.Umbrella);
+        setCsvRows(validData);
+        setIcpRows([]); // Clear manual entries when CSV is uploaded
         toast({
           title: "CSV Uploaded",
-          description: `Successfully loaded ${data.length} persona(s)`,
+          description: `Successfully loaded ${validData.length} persona(s)`,
         });
       },
       error: (error) => {
@@ -157,15 +174,50 @@ const Index = () => {
     });
   };
 
+  const downloadResults = () => {
+    if (!results) return;
+    
+    const csvContent = [
+      ['Metric', 'Value'],
+      ['Meetings to Book (PQLs)', formatNumber(results.Y)],
+      ['Meetings via LinkedIn', formatNumber(results.Y_li)],
+      ['Meetings via Email', formatNumber(results.Y_em)],
+      ['Positive Replies LinkedIn', formatNumber(results.PosLI)],
+      ['Positive Replies Email', formatNumber(results.PosEM)],
+      ['Total Replies LinkedIn', formatNumber(results.RepLI)],
+      ['Total Replies Email', formatNumber(results.RepEM)],
+      ['Verified Contacts LinkedIn', formatNumber(results.VerLI)],
+      ['Verified Contacts Email', formatNumber(results.VerEM)],
+      ['Required TAM LinkedIn', formatNumber(results.TAM_LI)],
+      ['Required TAM Email', formatNumber(results.TAM_EM)],
+      ['LinkedIn Capacity Check', results.capOK],
+      ['Estimated Pipeline Value', formatCurrency(results.pipeline)]
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sal-pipeline-results.csv';
+    a.click();
+  };
+
   const getUmbrellaColor = (umbrella: string) => {
     switch (umbrella) {
-      case 'Make Money': return 'bg-green-100 text-green-800';
+      case 'Make Money': return 'bg-emerald-100 text-emerald-800';
       case 'Save Money': return 'bg-blue-100 text-blue-800';
       case 'Save Time': return 'bg-yellow-100 text-yellow-800';
       case 'Reduce Risk': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const displayedPersonas = csvRows.length > 0 ? csvRows.map(row => ({
+    persona: row.Persona,
+    problem: row.Problem,
+    benefit: row.Benefit,
+    umbrella: row.Umbrella
+  })) : icpRows;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -176,7 +228,7 @@ const Index = () => {
             SAL & Pipeline Estimator
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Map your TAM → SALs → Revenue in minutes
+            Turn TAM into meetings, SALs, and revenue—step by step
           </p>
         </div>
 
@@ -205,25 +257,34 @@ const Index = () => {
 
                 <div>
                   <Label htmlFor="valueSal">Value per SAL (USD)</Label>
-                  <Input
-                    id="valueSal"
-                    type="number"
-                    value={valueSal}
-                    onChange={(e) => setValueSal(Number(e.target.value))}
-                    className="text-right"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <Input
+                      id="valueSal"
+                      type="number"
+                      value={valueSal}
+                      onChange={(e) => setValueSal(Number(e.target.value))}
+                      className="text-right pl-8"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <Label>Channels</Label>
+                  <Label>Outreach channel(s)</Label>
                   <RadioGroup value={channels} onValueChange={setChannels} className="mt-2">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Email" id="email" />
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        Email
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="LinkedIn" id="linkedin" />
-                      <Label htmlFor="linkedin">LinkedIn</Label>
+                      <Label htmlFor="linkedin" className="flex items-center gap-2">
+                        <Linkedin className="w-4 h-4" />
+                        LinkedIn
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Both" id="both" />
@@ -259,7 +320,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="splitEM">% via Email</Label>
+                      <Label htmlFor="splitEM">% meetings via Email</Label>
                       <Input
                         id="splitEM"
                         type="number"
@@ -270,6 +331,28 @@ const Index = () => {
                     </div>
                   </div>
                 )}
+
+                {/* ICP Modal */}
+                <ICPModal onSave={handleICPSave} />
+
+                {/* CSV Upload */}
+                <div>
+                  <Label htmlFor="csvUpload" className="block mb-2">Upload ICP CSV (optional, overrides manual rows)</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                    <Input
+                      id="csvUpload"
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Label htmlFor="csvUpload" className="cursor-pointer">
+                      <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-600">Click to upload CSV file</p>
+                      <p className="text-xs text-gray-500 mt-1">Expected columns: Persona, Problem, Benefit, Umbrella</p>
+                    </Label>
+                  </div>
+                </div>
               </div>
 
               {/* Advanced Defaults */}
@@ -281,7 +364,7 @@ const Index = () => {
                 <CollapsibleContent className="mt-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="showRate">Show Rate (%)</Label>
+                      <Label htmlFor="showRate">Show-Up Rate (%)</Label>
                       <Input
                         id="showRate"
                         type="number"
@@ -301,7 +384,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="emReply">Email Reply (%)</Label>
+                      <Label htmlFor="emReply">Email Reply Rate (%)</Label>
                       <Input
                         id="emReply"
                         type="number"
@@ -311,7 +394,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="emPositive">Email Positive (%)</Label>
+                      <Label htmlFor="emPositive">Email Positive-Share (%)</Label>
                       <Input
                         id="emPositive"
                         type="number"
@@ -321,7 +404,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="liReply">LI Reply (%)</Label>
+                      <Label htmlFor="liReply">LinkedIn Reply Rate (%)</Label>
                       <Input
                         id="liReply"
                         type="number"
@@ -331,7 +414,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="liPositive">LI Positive (%)</Label>
+                      <Label htmlFor="liPositive">LinkedIn Positive-Share (%)</Label>
                       <Input
                         id="liPositive"
                         type="number"
@@ -341,7 +424,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="liAccept">LI Accept (%)</Label>
+                      <Label htmlFor="liAccept">LinkedIn Acceptance Rate (%)</Label>
                       <Input
                         id="liAccept"
                         type="number"
@@ -351,12 +434,12 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="verifiedRate">Verified Rate (%)</Label>
+                      <Label htmlFor="verifiedRt">Verified Contacts / TAM (%)</Label>
                       <Input
-                        id="verifiedRate"
+                        id="verifiedRt"
                         type="number"
-                        value={verifiedRate}
-                        onChange={(e) => setVerifiedRate(Number(e.target.value))}
+                        value={verifiedRt}
+                        onChange={(e) => setVerifiedRt(Number(e.target.value))}
                         className="text-right"
                       />
                     </div>
@@ -385,72 +468,76 @@ const Index = () => {
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5" />
                       Results
+                      <Button onClick={downloadResults} variant="outline" size="sm" className="ml-auto">
+                        <Download className="w-4 h-4 mr-1" />
+                        CSV
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex justify-between py-2 border-b">
                         <span className="font-medium">Meetings to Book (PQLs)</span>
-                        <span className="text-right">{formatNumber(results.yTotal)}</span>
+                        <span className="text-right">{formatNumber(results.Y)}</span>
                       </div>
                       
                       {channels !== 'Email' && (
                         <div className="flex justify-between py-2 border-b">
                           <span>Meetings via LinkedIn</span>
-                          <span className="text-right">{formatNumber(results.yLI)}</span>
+                          <span className="text-right">{formatNumber(results.Y_li)}</span>
                         </div>
                       )}
                       
                       {channels !== 'LinkedIn' && (
                         <div className="flex justify-between py-2 border-b">
                           <span>Meetings via Email</span>
-                          <span className="text-right">{formatNumber(results.yEM)}</span>
+                          <span className="text-right">{formatNumber(results.Y_em)}</span>
                         </div>
                       )}
                       
                       {channels !== 'Email' && (
                         <div className="flex justify-between py-2 border-b">
                           <span>Positive Replies LinkedIn</span>
-                          <span className="text-right">{formatNumber(results.posLI)}</span>
+                          <span className="text-right">{formatNumber(results.PosLI)}</span>
                         </div>
                       )}
                       
                       {channels !== 'LinkedIn' && (
                         <div className="flex justify-between py-2 border-b">
                           <span>Positive Replies Email</span>
-                          <span className="text-right">{formatNumber(results.posEM)}</span>
+                          <span className="text-right">{formatNumber(results.PosEM)}</span>
                         </div>
                       )}
                       
                       {channels !== 'Email' && (
                         <div className="flex justify-between py-2 border-b">
                           <span>Total Replies LinkedIn</span>
-                          <span className="text-right">{formatNumber(results.repliesLI)}</span>
+                          <span className="text-right">{formatNumber(results.RepLI)}</span>
                         </div>
                       )}
                       
                       {channels !== 'LinkedIn' && (
                         <div className="flex justify-between py-2 border-b">
                           <span>Total Replies Email</span>
-                          <span className="text-right">{formatNumber(results.repliesEM)}</span>
+                          <span className="text-right">{formatNumber(results.RepEM)}</span>
                         </div>
                       )}
                       
                       <div className="flex justify-between py-2 border-b">
                         <span>Verified Contacts</span>
                         <span className="text-right">
-                          {formatNumber(results.verifiedLI + results.verifiedEM)}
+                          {formatNumber(results.VerLI + results.VerEM)}
                         </span>
                       </div>
                       
                       <div className="flex justify-between py-2 border-b">
-                        <span>Total TAM Needed</span>
+                        <span>Required TAM</span>
                         <span className="text-right">
-                          {formatNumber(results.tamLI + results.tamEM)}
+                          {formatNumber(results.TAM_LI + results.TAM_EM)}
                         </span>
                       </div>
                       
-                      <div className={`flex justify-between py-2 border-b ${results.capOK !== 'OK' ? 'text-red-600' : 'text-green-600'}`}>
+                      <div className={`flex justify-between py-2 border-b ${results.capOK !== 'OK' ? 'text-red-500' : 'text-emerald-500'}`}>
                         <span className="flex items-center gap-2">
                           {results.capOK === 'OK' ? 
                             <CheckCircle className="w-4 h-4" /> : 
@@ -475,37 +562,16 @@ const Index = () => {
           </AnimatePresence>
         </div>
 
-        {/* Persona Cards Section */}
-        <div className="mt-12">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                ICP Personas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <Label htmlFor="csvUpload" className="block mb-2">Upload ICP CSV</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                  <Input
-                    id="csvUpload"
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <Label htmlFor="csvUpload" className="cursor-pointer">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">Click to upload CSV file</p>
-                    <p className="text-xs text-gray-500 mt-1">Expected columns: Persona, Problem, Benefit, Umbrella</p>
-                  </Label>
-                </div>
-              </div>
-
-              {csvData.length > 0 && (
+        {/* ICP Persona Cards */}
+        {displayedPersonas.length > 0 && (
+          <div className="mt-12">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>ICP Personas ({displayedPersonas.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {csvData.map((persona, index) => (
+                  {displayedPersonas.map((persona, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -514,21 +580,21 @@ const Index = () => {
                     >
                       <Card className="h-full hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
-                          <h3 className="font-bold text-lg mb-2">{persona.Persona}</h3>
-                          <p className="text-sm text-gray-600 mb-3">{persona.Problem}</p>
-                          <p className="font-medium mb-3">{persona.Benefit}</p>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${getUmbrellaColor(persona.Umbrella)}`}>
-                            {persona.Umbrella}
+                          <h3 className="font-bold text-lg mb-2">{persona.persona}</h3>
+                          <p className="text-sm text-gray-600 mb-3">{persona.problem}</p>
+                          <p className="font-medium mb-3">{persona.benefit}</p>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${getUmbrellaColor(persona.umbrella)}`}>
+                            {persona.umbrella}
                           </span>
                         </CardContent>
                       </Card>
                     </motion.div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
