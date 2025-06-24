@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -175,11 +174,11 @@ const Index = () => {
 
     // Call calculations
     const PosCall = Y_call;
-    const TotalCallResp = PosCall;
-    const CallsNeeded = TotalCallResp / (callAppt / 100);
-    const PhoneContactsReq = CallsNeeded / (callPickup / 100);
+    const TotalCallResp = PosCall / (callAppt / 100);
+    const PhoneContactsReq = TotalCallResp / (callPickup / 100);
+    const CallsNeeded = TotalCallResp;
     const TAM_Call = PhoneContactsReq / (verifiedRate / 100);
-    const capOK_Call = CallsNeeded <= (callAccts * 150 * 22) ? "OK" : "Exceeds capacity";
+    const capOK_Call = PhoneContactsReq <= (callAccts * 150 * 22) ? "OK" : "Exceeds capacity";
 
     const pipeline = salGoal * valueSal;
 
