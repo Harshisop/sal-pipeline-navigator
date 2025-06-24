@@ -148,7 +148,7 @@ const Index = () => {
       const { data: camp, error: campError } = await supabase
         .from("campaigns")
         .upsert({
-          name: `Campaign ${period}M ${new Date().toLocaleDateString()}`,
+          name: `Campaign ${periodMonths}M ${new Date().toLocaleDateString()}`,
           go_live: startDate,
           period_months: periodMonths
         }, { onConflict: "name" })
@@ -215,11 +215,13 @@ const Index = () => {
   };
 
   useEffect(() => {
+    const periodMonths = Number(period); // Convert string to number for calculations
+    
     // Define new nodes based on results
     const newNodes: Node[] = [
       { id: 'salGoal', data: { label: `Sales Goal: ${salGoal}` }, position: { x: 50, y: 50 } },
       { id: 'valueSal', data: { label: `Value per Sale: ${valueSal}` }, position: { x: 250, y: 50 } },
-      { id: 'period', data: { label: `Period (Months): ${period}` }, position: { x: 450, y: 50 } },
+      { id: 'period', data: { label: `Period (Months): ${periodMonths}` }, position: { x: 450, y: 50 } },
       { id: 'Y', data: { label: `Total Meetings: ${results.Y}` }, position: { x: 250, y: 150 } },
       { id: 'Y_li', data: { label: `LinkedIn Meetings: ${results.Y_li}` }, position: { x: 50, y: 250 } },
       { id: 'Y_em', data: { label: `Email Meetings: ${results.Y_em}` }, position: { x: 250, y: 250 } },
@@ -340,4 +342,3 @@ const Index = () => {
 };
 
 export default Index;
-
