@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus } from 'lucide-react';
@@ -25,7 +24,7 @@ interface ICPModalProps {
 
 const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [personaGroup, setPersonaGroup] = useState('Sales');
+  const [personaGroup, setPersonaGroup] = useState('');
   const [seniority, setSeniority] = useState<string[]>(['C-level']);
   const [painPoint, setPainPoint] = useState('');
   const [benefitFeature, setBenefitFeature] = useState('');
@@ -62,7 +61,7 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
     });
     
     // Reset form
-    setPersonaGroup('Sales');
+    setPersonaGroup('');
     setSeniority(['C-level']);
     setPainPoint('');
     setBenefitFeature('');
@@ -74,7 +73,7 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="btn-lime w-full h-12 text-lg">
+        <Button className="btn-lime flex-1 h-12 text-lg">
           <Plus className="w-5 h-5 mr-3" />
           Manage ICPs
         </Button>
@@ -85,20 +84,14 @@ const ICPModal: React.FC<ICPModalProps> = ({ onSave }) => {
         </DialogHeader>
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="personaGroup" className="text-[var(--c-text)] font-medium">Target Group</Label>
-            <Select value={personaGroup} onValueChange={setPersonaGroup}>
-              <SelectTrigger className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Sales">Sales</SelectItem>
-                <SelectItem value="Operations">Operations</SelectItem>
-                <SelectItem value="Marketing">Marketing</SelectItem>
-                <SelectItem value="Finance">Finance</SelectItem>
-                <SelectItem value="IT">IT</SelectItem>
-                <SelectItem value="HR">HR</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="personaGroup" className="text-[var(--c-text)] font-medium">Persona / Group</Label>
+            <Input
+              id="personaGroup"
+              value={personaGroup}
+              onChange={(e) => setPersonaGroup(e.target.value)}
+              placeholder="e.g. Sales"
+              className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)]"
+            />
           </div>
           
           <div className="space-y-4">

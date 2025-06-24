@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, Mail, Linkedin } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, Mail, Linkedin, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import ICPModal from '@/components/ICPModal';
@@ -21,17 +21,19 @@ interface Results {
   Y_call: number;
   PosLI: number;
   PosEM: number;
+  PosCall: number;
   RepLI: number;
   RepEM: number;
   RepCall: number;
+  AppointmentCalls: number;
   CallsNeeded: number;
+  ConnReq: number;
   VerEM: number;
   VerLI: number;
   VerCall: number;
   TAM_EM: number;
   TAM_LI: number;
   TAM_Call: number;
-  ConnReq: number;
   capOK: string;
   capOK_Call: string;
   pipeline: number;
@@ -58,8 +60,9 @@ const Index = () => {
   const [liAccts, setLiAccts] = useState<number>(4);
   const [callAccts, setCallAccts] = useState<number>(2);
   const [splitLI, setSplitLI] = useState<number>(60);
-  const [splitEM, setSplitEM] = useState<number>(40);
-  const [splitCall, setSplitCall] = useState<number>(0);
+  const [splitEM, setSplitEM] = useState<number>(30);
+  const [splitCall, setSplitCall] = useState<number>(10);
+  const [channelFile, setChannelFile] = useState<File | null>(null);
   
   // Advanced defaults
   const [showRate, setShowRate] = useState<number>(60);
@@ -69,6 +72,7 @@ const Index = () => {
   const [liReply, setLiReply] = useState<number>(20);
   const [liPositive, setLiPositive] = useState<number>(35);
   const [liAccept, setLiAccept] = useState<number>(30);
+  const [connectionRatio, setConnectionRatio] = useState<number>(1);
   const [verifiedRt, setVerifiedRt] = useState<number>(40);
   
   // Call benchmarks
@@ -145,16 +149,18 @@ const Index = () => {
 
     const PosLI = Y_li / show;
     const PosEM = Y_em / show;
+    const PosCall = Y_call;
 
     const RepLI = PosLI / (liPositive / 100);
     const RepEM = PosEM / (emPositive / 100);
-    const RepCall = Y_call / (appointmentRate / 100);
+    const AppointmentCalls = Y_call / (appointmentRate / 100);
+    const CallsNeeded = AppointmentCalls / (pickupRate / 100);
+    const RepCall = CallsNeeded;
 
     const VerEM = RepEM / (emReply / 100);
     const liMsgs = RepLI / (liReply / 100);
-    const ConnReq = liMsgs / (liAccept / 100);
+    const ConnReq = liMsgs / (liAccept / 100) * connectionRatio;
     const VerLI = ConnReq;
-    const CallsNeeded = RepCall / (pickupRate / 100);
     const VerCall = CallsNeeded;
 
     const TAM_EM = VerEM / (verifiedRt / 100);
@@ -166,9 +172,9 @@ const Index = () => {
     const pipeline = X * V;
 
     const newResults: Results = {
-      Y, Y_li, Y_em, Y_call, PosLI, PosEM, RepLI, RepEM, RepCall,
-      CallsNeeded, VerEM, VerLI, VerCall, TAM_EM, TAM_LI, TAM_Call,
-      ConnReq, capOK, capOK_Call, pipeline
+      Y, Y_li, Y_em, Y_call, PosLI, PosEM, PosCall, RepLI, RepEM, RepCall,
+      AppointmentCalls, CallsNeeded, ConnReq, VerEM, VerLI, VerCall, 
+      TAM_EM, TAM_LI, TAM_Call, capOK, capOK_Call, pipeline
     };
 
     setResults(newResults);
@@ -182,59 +188,74 @@ const Index = () => {
     });
   };
 
-  const downloadResults = () => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setChannelFile(file);
+      toast({
+        title: "File Uploaded",
+        description: `${file.name} has been attached`,
+      });
+    }
+  };
+
+  const downloadPipelineResults = () => {
     if (!results) return;
     
     const headers = [
-      'Period', 'Target SALs', 'Has Outbound', 'Channels', 'LI Accounts', 'Call Accounts',
-      'Split LI %', 'Split EM %', 'Split Call %', 'Persona Group', 'Seniority',
-      'Pain Point', 'Benefit Feature', 'Value Prop', 'Social Group',
-      'Meetings to Book', 'Meetings via LinkedIn', 'Meetings via Email', 'Meetings via Call',
-      'Positive Replies LinkedIn', 'Positive Replies Email', 'Total Replies LinkedIn',
-      'Total Replies Email', 'Appointment Calls', 'Calls Needed', 'Verified Contacts LinkedIn',
-      'Verified Contacts Email', 'Verified Contacts Call', 'Required TAM LinkedIn',
-      'Required TAM Email', 'Required TAM Call', 'LinkedIn Capacity Check', 'Call Capacity Check',
-      'Estimated Pipeline Value'
+      'Meetings to Book (PQLs)', 'Meetings via LinkedIn', 'Meetings via Email', 'Meetings via Call',
+      'Positive Replies LinkedIn', 'Total Replies LinkedIn', 'Connection Requests to Send',
+      'Positive Replies Email', 'Total Replies Email', 'Email Contacts Required',
+      'Positive Responses from Calls', 'Total Responses from Calls', 'Phone Contacts Required',
+      'Required TAM LinkedIn', 'Required TAM Email', 'Required TAM Call',
+      'LinkedIn Capacity Check', 'Call Capacity Check', 'Estimated Pipeline Value'
     ];
     
+    const values = [
+      formatNumber(results.Y), formatNumber(results.Y_li), formatNumber(results.Y_em),
+      formatNumber(results.Y_call), formatNumber(results.PosLI), formatNumber(results.RepLI),
+      formatNumber(results.ConnReq), formatNumber(results.PosEM), formatNumber(results.RepEM),
+      formatNumber(results.VerEM), formatNumber(results.PosCall), formatNumber(results.RepCall),
+      formatNumber(results.VerCall), formatNumber(results.TAM_LI), formatNumber(results.TAM_EM),
+      formatNumber(results.TAM_Call), results.capOK, results.capOK_Call, formatCurrency(results.pipeline)
+    ];
+    
+    const csvContent = headers.join(',') + '\n' + values.map(item => `"${item}"`).join(',');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pipeline-results.csv';
+    a.click();
+  };
+
+  const downloadICPData = () => {
+    if (icpRows.length === 0) {
+      toast({
+        title: "No ICP Data",
+        description: "Please add at least one ICP before downloading",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const headers = ['Persona Group', 'Seniority', 'Pain Point', 'Benefit from Feature', 'Value Prop', 'Social Group'];
     let csvContent = headers.join(',') + '\n';
     
-    // If no ICPs, add one row with empty ICP fields
-    if (icpRows.length === 0) {
+    icpRows.forEach(icp => {
       const row = [
-        period, salGoal, hasOutbound, channels, liAccts, callAccts,
-        splitLI, splitEM, splitCall, '', '', '', '', '', '',
-        formatNumber(results.Y), formatNumber(results.Y_li), formatNumber(results.Y_em),
-        formatNumber(results.Y_call), formatNumber(results.PosLI), formatNumber(results.PosEM),
-        formatNumber(results.RepLI), formatNumber(results.RepEM), formatNumber(results.RepCall),
-        formatNumber(results.CallsNeeded), formatNumber(results.VerLI), formatNumber(results.VerEM),
-        formatNumber(results.VerCall), formatNumber(results.TAM_LI), formatNumber(results.TAM_EM),
-        formatNumber(results.TAM_Call), results.capOK, results.capOK_Call, formatCurrency(results.pipeline)
+        icp.personaGroup, icp.seniority.join(';'), icp.painPoint, 
+        icp.benefitFeature, icp.umbrella, icp.socialGroup
       ];
       csvContent += row.map(item => `"${item}"`).join(',') + '\n';
-    } else {
-      // Add one row per ICP
-      icpRows.forEach(icp => {
-        const row = [
-          period, salGoal, hasOutbound, channels, liAccts, callAccts,
-          splitLI, splitEM, splitCall, icp.personaGroup, icp.seniority.join(';'),
-          icp.painPoint, icp.benefitFeature, icp.umbrella, icp.socialGroup,
-          formatNumber(results.Y), formatNumber(results.Y_li), formatNumber(results.Y_em),
-          formatNumber(results.Y_call), formatNumber(results.PosLI), formatNumber(results.PosEM),
-          formatNumber(results.RepLI), formatNumber(results.RepEM), formatNumber(results.RepCall),
-          formatNumber(results.CallsNeeded), formatNumber(results.VerLI), formatNumber(results.VerEM),
-          formatNumber(results.VerCall), formatNumber(results.TAM_LI), formatNumber(results.TAM_EM),
-          formatNumber(results.TAM_Call), results.capOK, results.capOK_Call, formatCurrency(results.pipeline)
-        ];
-        csvContent += row.map(item => `"${item}"`).join(',') + '\n';
-      });
-    }
+    });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sal-pipeline-results.csv';
+    a.download = 'icp-data.csv';
     a.click();
   };
 
@@ -249,8 +270,9 @@ const Index = () => {
   };
 
   const getTimelineMessage = () => {
-    const timelineDays = hasOutbound === 'Yes (we know our offers)' ? 14 : 90;
-    return `Expected timeline: ${timelineDays} days to ${hasOutbound === 'Yes (we know our offers)' ? 'launch' : 'complete experimentation and launch'}`;
+    return hasOutbound === 'Yes (we know our offers)' 
+      ? 'Expected timeline for positive results: 2–3 months.'
+      : 'Expected timeline for positive results: 4–5 months (experimental phase).';
   };
 
   const displayedPersonas = icpRows;
@@ -303,9 +325,12 @@ const Index = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1 month">1 month</SelectItem>
-                    <SelectItem value="2 months">2 months</SelectItem>
                     <SelectItem value="3 months">3 months</SelectItem>
+                    <SelectItem value="4 months">4 months</SelectItem>
+                    <SelectItem value="5 months">5 months</SelectItem>
+                    <SelectItem value="6 months">6 months</SelectItem>
+                    <SelectItem value="9 months">9 months</SelectItem>
+                    <SelectItem value="12 months">12 months</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -444,8 +469,31 @@ const Index = () => {
               </div>
             )}
 
+            {/* File Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="channelFile" className="text-[var(--c-text)] font-medium">Attach channel data file (optional)</Label>
+              <div className="relative">
+                <Input
+                  id="channelFile"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[var(--c-blue)] file:text-white"
+                />
+                <Upload className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              </div>
+              {channelFile && (
+                <p className="text-sm text-green-600">Attached: {channelFile.name}</p>
+              )}
+            </div>
+
             {/* ICP Management */}
-            <ICPModal onSave={handleICPSave} />
+            <div className="flex gap-3">
+              <ICPModal onSave={handleICPSave} />
+              <Button onClick={downloadICPData} variant="outline" className="flex-1 h-12 rounded-xl border-2">
+                <Download className="w-5 h-5 mr-3" />
+                Download ICP CSV
+              </Button>
+            </div>
 
             {/* Advanced Defaults */}
             <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
@@ -516,12 +564,23 @@ const Index = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="liAccept" className="text-[var(--c-text)] font-medium">LinkedIn Acceptance Rate (%)</Label>
+                    <Label htmlFor="liAccept" className="text-[var(--c-text)] font-medium">LinkedIn Connection-Acceptance (%)</Label>
                     <Input
                       id="liAccept"
                       type="number"
                       value={liAccept}
                       onChange={(e) => setLiAccept(Number(e.target.value))}
+                      className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="connectionRatio" className="text-[var(--c-text)] font-medium">Connection→Contact Ratio</Label>
+                    <Input
+                      id="connectionRatio"
+                      type="number"
+                      step="0.1"
+                      value={connectionRatio}
+                      onChange={(e) => setConnectionRatio(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
@@ -552,7 +611,7 @@ const Index = () => {
                       type="number"
                       step="0.1"
                       value={appointmentRate}
-                      onChange={(e) => setAppointmentRate(Number(e.target.value))}
+                      onChange={(e)=> setAppointmentRate(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
@@ -650,10 +709,6 @@ const Index = () => {
                     <CardTitle className="flex items-center gap-3 text-2xl text-[var(--c-blue-dark)]">
                       <TrendingUp className="w-6 h-6" />
                       Pipeline Results
-                      <Button onClick={downloadResults} variant="outline" size="sm" className="ml-auto rounded-full">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export CSV
-                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -694,6 +749,10 @@ const Index = () => {
                             <span className="font-medium">Total Replies LinkedIn</span>
                             <span className="text-right font-semibold">{formatNumber(results.RepLI)}</span>
                           </div>
+                          <div className="flex justify-between py-3 border-b border-gray-100">
+                            <span className="font-medium">Connection Requests to Send</span>
+                            <span className="text-right font-semibold">{formatNumber(results.ConnReq)}</span>
+                          </div>
                         </>
                       )}
                       
@@ -707,34 +766,41 @@ const Index = () => {
                             <span className="font-medium">Total Replies Email</span>
                             <span className="text-right font-semibold">{formatNumber(results.RepEM)}</span>
                           </div>
+                          <div className="flex justify-between py-3 border-b border-gray-100">
+                            <span className="font-medium">Email Contacts Required</span>
+                            <span className="text-right font-semibold">{formatNumber(results.VerEM)}</span>
+                          </div>
                         </>
                       )}
 
                       {channels !== 'LinkedIn' && channels !== 'Email' && (
                         <>
                           <div className="flex justify-between py-3 border-b border-gray-100">
-                            <span className="font-medium">Appointment Calls</span>
+                            <span className="font-medium">Positive Responses from Calls</span>
+                            <span className="text-right font-semibold">{formatNumber(results.PosCall)}</span>
+                          </div>
+                          <div className="flex justify-between py-3 border-b border-gray-100">
+                            <span className="font-medium">Total Responses from Calls</span>
                             <span className="text-right font-semibold">{formatNumber(results.RepCall)}</span>
                           </div>
                           <div className="flex justify-between py-3 border-b border-gray-100">
-                            <span className="font-medium">Calls Needed</span>
-                            <span className="text-right font-semibold">{formatNumber(results.CallsNeeded)}</span>
+                            <span className="font-medium">Phone Contacts Required</span>
+                            <span className="text-right font-semibold">{formatNumber(results.VerCall)}</span>
                           </div>
                         </>
                       )}
                       
                       <div className="flex justify-between py-3 border-b border-gray-100">
-                        <span className="font-medium">Verified Contacts</span>
-                        <span className="text-right font-semibold">
-                          {formatNumber(results.VerLI + results.VerEM + results.VerCall)}
-                        </span>
+                        <span className="font-medium">Required TAM LinkedIn</span>
+                        <span className="text-right font-semibold">{formatNumber(results.TAM_LI)}</span>
                       </div>
-                      
                       <div className="flex justify-between py-3 border-b border-gray-100">
-                        <span className="font-medium">Required TAM</span>
-                        <span className="text-right font-semibold">
-                          {formatNumber(results.TAM_LI + results.TAM_EM + results.TAM_Call)}
-                        </span>
+                        <span className="font-medium">Required TAM Email</span>
+                        <span className="text-right font-semibold">{formatNumber(results.TAM_EM)}</span>
+                      </div>
+                      <div className="flex justify-between py-3 border-b border-gray-100">
+                        <span className="font-medium">Required TAM Call</span>
+                        <span className="text-right font-semibold">{formatNumber(results.TAM_Call)}</span>
                       </div>
                       
                       {channels !== 'Email' && channels !== 'Call' && (
@@ -762,6 +828,13 @@ const Index = () => {
                           <span className="text-right font-bold">{results.capOK_Call}</span>
                         </div>
                       )}
+
+                      <div className="flex justify-center py-4">
+                        <Button onClick={downloadPipelineResults} className="btn-blue">
+                          <Download className="w-4 h-4 mr-2" />
+                          Download Pipeline CSV
+                        </Button>
+                      </div>
                       
                       <div className="flex justify-between py-4 border-t-2 border-[var(--c-blue)] bg-gradient-to-r from-blue-50 to-green-50 px-4 rounded-xl">
                         <span className="font-bold text-xl">Estimated Pipeline Value</span>
