@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, Mail, Linkedin, Upload } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import ICPModal from '@/components/ICPModal';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  useNodesState,
+  useEdgesState,
+  Node,
+  Edge,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 interface Results {
   Y: number;
@@ -24,17 +34,16 @@ interface Results {
   PosCall: number;
   RepLI: number;
   RepEM: number;
-  RepCall: number;
-  AppointmentCalls: number;
-  CallsNeeded: number;
+  TotalCallResp: number;
   ConnReq: number;
-  VerEM: number;
+  EmailContacts: number;
+  CallsNeeded: number;
+  PhoneContactsReq: number;
   VerLI: number;
-  VerCall: number;
   TAM_EM: number;
   TAM_LI: number;
   TAM_Call: number;
-  capOK: string;
+  capOK_LI: string;
   capOK_Call: string;
   pipeline: number;
 }
@@ -62,22 +71,21 @@ const Index = () => {
   const [splitLI, setSplitLI] = useState<number>(60);
   const [splitEM, setSplitEM] = useState<number>(30);
   const [splitCall, setSplitCall] = useState<number>(10);
-  const [channelFile, setChannelFile] = useState<File | null>(null);
   
   // Advanced defaults
   const [showRate, setShowRate] = useState<number>(60);
   const [salPerMtg, setSalPerMtg] = useState<number>(50);
-  const [emReply, setEmReply] = useState<number>(3);
-  const [emPositive, setEmPositive] = useState<number>(30);
+  const [emailReply, setEmailReply] = useState<number>(3);
+  const [emailPositiveReply, setEmailPositiveReply] = useState<number>(30);
   const [liReply, setLiReply] = useState<number>(20);
-  const [liPositive, setLiPositive] = useState<number>(35);
+  const [liPositiveReply, setLiPositiveReply] = useState<number>(35);
   const [liAccept, setLiAccept] = useState<number>(30);
-  const [connectionRatio, setConnectionRatio] = useState<number>(1);
-  const [verifiedRt, setVerifiedRt] = useState<number>(40);
+  const [connToContact, setConnToContact] = useState<number>(1);
+  const [verifiedRate, setVerifiedRate] = useState<number>(40);
   
   // Call benchmarks
-  const [pickupRate, setPickupRate] = useState<number>(22);
-  const [appointmentRate, setAppointmentRate] = useState<number>(2.3);
+  const [callPickup, setCallPickup] = useState<number>(22);
+  const [callAppt, setCallAppt] = useState<number>(2.3);
   
   // ICP and results state
   const [icpRows, setIcpRows] = useState<ICPData[]>([]);
@@ -86,6 +94,10 @@ const Index = () => {
   
   // UI state
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
+
+  // React Flow state
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -118,10 +130,9 @@ const Index = () => {
   const calculate = () => {
     if (!validateSplit()) return;
 
-    const X = +salGoal;
-    const V = +valueSal;
-    const show = showRate / 100;
-    const salPM = salPerMtg / 100;
+    const periodMonths = parseInt(period.split(' ')[0]);
+    const showRateDecimal = showRate / 100;
+    const salPerMtgDecimal = salPerMtg / 100;
     
     let pctLI = 0, pctEM = 0, pctCall = 0;
     
@@ -136,45 +147,46 @@ const Index = () => {
         pctCall = 100;
         break;
       case 'All':
-        pctLI = +splitLI;
-        pctEM = +splitEM;
-        pctCall = +splitCall;
+        pctLI = splitLI;
+        pctEM = splitEM;
+        pctCall = splitCall;
         break;
     }
 
-    const Y = X / (show * salPM);
+    // Base meetings calculation
+    const Y = salGoal / (showRateDecimal * salPerMtgDecimal);
     const Y_li = Y * pctLI / 100;
     const Y_em = Y * pctEM / 100;
     const Y_call = Y * pctCall / 100;
 
-    const PosLI = Y_li / show;
-    const PosEM = Y_em / show;
+    // LinkedIn calculations
+    const PosLI = Y_li / showRateDecimal;
+    const RepLI = PosLI / (liPositiveReply / 100);
+    const ConnReq = (RepLI / (liReply / 100)) / (liAccept / 100);
+    const VerLI = ConnReq * connToContact;
+    const TAM_LI = VerLI / (verifiedRate / 100);
+    const capOK_LI = ConnReq <= (liAccts * 500 * periodMonths) ? "OK" : "Exceeds capacity";
+
+    // Email calculations
+    const PosEM = Y_em / showRateDecimal;
+    const RepEM = PosEM / (emailPositiveReply / 100);
+    const EmailContacts = RepEM / (emailReply / 100);
+    const TAM_EM = EmailContacts / (verifiedRate / 100);
+
+    // Call calculations
     const PosCall = Y_call;
+    const TotalCallResp = PosCall;
+    const CallsNeeded = TotalCallResp / (callAppt / 100);
+    const PhoneContactsReq = CallsNeeded / (callPickup / 100);
+    const TAM_Call = PhoneContactsReq / (verifiedRate / 100);
+    const capOK_Call = CallsNeeded <= (callAccts * 150 * 22) ? "OK" : "Exceeds capacity";
 
-    const RepLI = PosLI / (liPositive / 100);
-    const RepEM = PosEM / (emPositive / 100);
-    const AppointmentCalls = Y_call / (appointmentRate / 100);
-    const CallsNeeded = AppointmentCalls / (pickupRate / 100);
-    const RepCall = CallsNeeded;
-
-    const VerEM = RepEM / (emReply / 100);
-    const liMsgs = RepLI / (liReply / 100);
-    const ConnReq = liMsgs / (liAccept / 100) * connectionRatio;
-    const VerLI = ConnReq;
-    const VerCall = CallsNeeded;
-
-    const TAM_EM = VerEM / (verifiedRt / 100);
-    const TAM_LI = VerLI / (verifiedRt / 100);
-    const TAM_Call = VerCall / (verifiedRt / 100);
-
-    const capOK = ConnReq <= (+liAccts * 500 * 3) ? "OK" : "Exceeds capacity";
-    const capOK_Call = CallsNeeded <= (+callAccts * 150 * 22) ? "OK" : "Exceeds capacity";
-    const pipeline = X * V;
+    const pipeline = salGoal * valueSal;
 
     const newResults: Results = {
-      Y, Y_li, Y_em, Y_call, PosLI, PosEM, PosCall, RepLI, RepEM, RepCall,
-      AppointmentCalls, CallsNeeded, ConnReq, VerEM, VerLI, VerCall, 
-      TAM_EM, TAM_LI, TAM_Call, capOK, capOK_Call, pipeline
+      Y, Y_li, Y_em, Y_call, PosLI, PosEM, PosCall, RepLI, RepEM, TotalCallResp,
+      ConnReq, EmailContacts, CallsNeeded, PhoneContactsReq, VerLI,
+      TAM_EM, TAM_LI, TAM_Call, capOK_LI, capOK_Call, pipeline
     };
 
     setResults(newResults);
@@ -188,25 +200,14 @@ const Index = () => {
     });
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setChannelFile(file);
-      toast({
-        title: "File Uploaded",
-        description: `${file.name} has been attached`,
-      });
-    }
-  };
-
   const downloadPipelineResults = () => {
     if (!results) return;
     
     const headers = [
       'Meetings to Book (PQLs)', 'Meetings via LinkedIn', 'Meetings via Email', 'Meetings via Call',
-      'Positive Replies LinkedIn', 'Total Replies LinkedIn', 'Connection Requests to Send',
+      'Positive Replies LinkedIn', 'Total Replies LinkedIn', 'Connection Requests to Send (LinkedIn)',
       'Positive Replies Email', 'Total Replies Email', 'Email Contacts Required',
-      'Positive Responses from Calls', 'Total Responses from Calls', 'Phone Contacts Required',
+      'Positive Responses from Call', 'Total Responses from Call', 'Phone Contacts Required (Call)',
       'Required TAM LinkedIn', 'Required TAM Email', 'Required TAM Call',
       'LinkedIn Capacity Check', 'Call Capacity Check', 'Estimated Pipeline Value'
     ];
@@ -215,9 +216,9 @@ const Index = () => {
       formatNumber(results.Y), formatNumber(results.Y_li), formatNumber(results.Y_em),
       formatNumber(results.Y_call), formatNumber(results.PosLI), formatNumber(results.RepLI),
       formatNumber(results.ConnReq), formatNumber(results.PosEM), formatNumber(results.RepEM),
-      formatNumber(results.VerEM), formatNumber(results.PosCall), formatNumber(results.RepCall),
-      formatNumber(results.VerCall), formatNumber(results.TAM_LI), formatNumber(results.TAM_EM),
-      formatNumber(results.TAM_Call), results.capOK, results.capOK_Call, formatCurrency(results.pipeline)
+      formatNumber(results.EmailContacts), formatNumber(results.PosCall), formatNumber(results.TotalCallResp),
+      formatNumber(results.PhoneContactsReq), formatNumber(results.TAM_LI), formatNumber(results.TAM_EM),
+      formatNumber(results.TAM_Call), results.capOK_LI, results.capOK_Call, formatCurrency(results.pipeline)
     ];
     
     const csvContent = headers.join(',') + '\n' + values.map(item => `"${item}"`).join(',');
@@ -274,6 +275,94 @@ const Index = () => {
       ? 'Expected timeline for positive results: 2–3 months.'
       : 'Expected timeline for positive results: 4–5 months (experimental phase).';
   };
+
+  // Campaign Mind-Map Effect
+  useEffect(() => {
+    if (!results || icpRows.length === 0) return;
+
+    const newNodes: Node[] = [];
+    const newEdges: Edge[] = [];
+    let nodeId = 1;
+
+    // Channel nodes
+    const selectedChannels = channels === 'All' ? ['LinkedIn', 'Email', 'Call'] : [channels];
+    selectedChannels.forEach((channel, index) => {
+      newNodes.push({
+        id: `channel-${nodeId}`,
+        type: 'default',
+        position: { x: index * 200, y: 0 },
+        data: { label: channel },
+        style: { 
+          backgroundColor: 'var(--c-blue)', 
+          color: 'white',
+          border: '2px solid var(--c-blue-dark)',
+          borderRadius: '12px'
+        }
+      });
+      nodeId++;
+    });
+
+    // ICP nodes
+    icpRows.forEach((icp, index) => {
+      const icpNodeId = `icp-${nodeId}`;
+      newNodes.push({
+        id: icpNodeId,
+        type: 'default',
+        position: { x: index * 250, y: 200 },
+        data: { label: icp.personaGroup },
+        style: { 
+          backgroundColor: 'var(--c-lime)', 
+          color: 'var(--c-blue-dark)',
+          border: '2px solid var(--c-lime-dark)',
+          borderRadius: '12px'
+        }
+      });
+
+      // Connect channels to ICPs
+      selectedChannels.forEach((_, channelIndex) => {
+        newEdges.push({
+          id: `channel-${channelIndex + 1}-to-${icpNodeId}`,
+          source: `channel-${channelIndex + 1}`,
+          target: icpNodeId,
+          style: { strokeDasharray: '5,5', stroke: 'var(--c-blue)' },
+          animated: true
+        });
+      });
+
+      // Seniority nodes
+      icp.seniority.forEach((seniority, seniorityIndex) => {
+        const seniorityNodeId = `seniority-${nodeId}`;
+        newNodes.push({
+          id: seniorityNodeId,
+          type: 'default',
+          position: { x: index * 250 + seniorityIndex * 120, y: 400 },
+          data: { label: seniority },
+          style: { 
+            backgroundColor: 'white', 
+            color: 'var(--c-text)',
+            border: '2px solid var(--c-gray)',
+            borderRadius: '8px',
+            fontSize: '12px'
+          }
+        });
+
+        // Connect ICP to seniority
+        newEdges.push({
+          id: `${icpNodeId}-to-${seniorityNodeId}`,
+          source: icpNodeId,
+          target: seniorityNodeId,
+          style: { strokeDasharray: '3,3', stroke: 'var(--c-gray)' }
+        });
+
+        nodeId++;
+      });
+
+      nodeId++;
+    });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [results, icpRows, channels, setNodes, setEdges]);
 
   const displayedPersonas = icpRows;
 
@@ -382,17 +471,11 @@ const Index = () => {
               <RadioGroup value={channels} onValueChange={setChannels} className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="flex items-center space-x-3 p-4 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                   <RadioGroupItem value="Email" id="email" />
-                  <Label htmlFor="email" className="flex items-center gap-2 cursor-pointer">
-                    <Mail className="w-5 h-5 text-[var(--c-blue)]" />
-                    Email
-                  </Label>
+                  <Label htmlFor="email" className="cursor-pointer">Email</Label>
                 </div>
                 <div className="flex items-center space-x-3 p-4 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                   <RadioGroupItem value="LinkedIn" id="linkedin" />
-                  <Label htmlFor="linkedin" className="flex items-center gap-2 cursor-pointer">
-                    <Linkedin className="w-5 h-5 text-[var(--c-blue)]" />
-                    LinkedIn
-                  </Label>
+                  <Label htmlFor="linkedin" className="cursor-pointer">LinkedIn</Label>
                 </div>
                 <div className="flex items-center space-x-3 p-4 border-2 rounded-xl hover:border-[var(--c-blue)] transition-colors">
                   <RadioGroupItem value="Call" id="call" />
@@ -469,23 +552,6 @@ const Index = () => {
               </div>
             )}
 
-            {/* File Upload */}
-            <div className="space-y-2">
-              <Label htmlFor="channelFile" className="text-[var(--c-text)] font-medium">Attach channel data file (optional)</Label>
-              <div className="relative">
-                <Input
-                  id="channelFile"
-                  type="file"
-                  onChange={handleFileChange}
-                  className="h-12 rounded-xl border-2 focus:border-[var(--c-blue)] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[var(--c-blue)] file:text-white"
-                />
-                <Upload className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-              </div>
-              {channelFile && (
-                <p className="text-sm text-green-600">Attached: {channelFile.name}</p>
-              )}
-            </div>
-
             {/* ICP Management */}
             <div className="flex gap-3">
               <ICPModal onSave={handleICPSave} />
@@ -524,22 +590,22 @@ const Index = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="emReply" className="text-[var(--c-text)] font-medium">Email Reply Rate (%)</Label>
+                    <Label htmlFor="emailReply" className="text-[var(--c-text)] font-medium">Email Reply Rate (%)</Label>
                     <Input
-                      id="emReply"
+                      id="emailReply"
                       type="number"
-                      value={emReply}
-                      onChange={(e) => setEmReply(Number(e.target.value))}
+                      value={emailReply}
+                      onChange={(e) => setEmailReply(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="emPositive" className="text-[var(--c-text)] font-medium">Email Positive-Share (%)</Label>
+                    <Label htmlFor="emailPositiveReply" className="text-[var(--c-text)] font-medium">Email Positive Reply Rate (%)</Label>
                     <Input
-                      id="emPositive"
+                      id="emailPositiveReply"
                       type="number"
-                      value={emPositive}
-                      onChange={(e) => setEmPositive(Number(e.target.value))}
+                      value={emailPositiveReply}
+                      onChange={(e) => setEmailPositiveReply(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
@@ -554,12 +620,12 @@ const Index = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="liPositive" className="text-[var(--c-text)] font-medium">LinkedIn Positive-Share (%)</Label>
+                    <Label htmlFor="liPositiveReply" className="text-[var(--c-text)] font-medium">LinkedIn Positive Reply Rate (%)</Label>
                     <Input
-                      id="liPositive"
+                      id="liPositiveReply"
                       type="number"
-                      value={liPositive}
-                      onChange={(e) => setLiPositive(Number(e.target.value))}
+                      value={liPositiveReply}
+                      onChange={(e) => setLiPositiveReply(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
@@ -574,44 +640,44 @@ const Index = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="connectionRatio" className="text-[var(--c-text)] font-medium">Connection→Contact Ratio</Label>
+                    <Label htmlFor="connToContact" className="text-[var(--c-text)] font-medium">Connection→Contact Ratio</Label>
                     <Input
-                      id="connectionRatio"
+                      id="connToContact"
                       type="number"
                       step="0.1"
-                      value={connectionRatio}
-                      onChange={(e) => setConnectionRatio(Number(e.target.value))}
+                      value={connToContact}
+                      onChange={(e) => setConnToContact(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="verifiedRt" className="text-[var(--c-text)] font-medium">Verified Contacts / TAM (%)</Label>
+                    <Label htmlFor="verifiedRate" className="text-[var(--c-text)] font-medium">Verified Contacts / TAM (%)</Label>
                     <Input
-                      id="verifiedRt"
+                      id="verifiedRate"
                       type="number"
-                      value={verifiedRt}
-                      onChange={(e) => setVerifiedRt(Number(e.target.value))}
+                      value={verifiedRate}
+                      onChange={(e) => setVerifiedRate(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pickupRate" className="text-[var(--c-text)] font-medium">Call Pickup Rate (%)</Label>
+                    <Label htmlFor="callPickup" className="text-[var(--c-text)] font-medium">Call Pickup Rate (%)</Label>
                     <Input
-                      id="pickupRate"
+                      id="callPickup"
                       type="number"
-                      value={pickupRate}
-                      onChange={(e) => setPickupRate(Number(e.target.value))}
+                      value={callPickup}
+                      onChange={(e) => setCallPickup(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="appointmentRate" className="text-[var(--c-text)] font-medium">Call Appointment Rate (%)</Label>
+                    <Label htmlFor="callAppt" className="text-[var(--c-text)] font-medium">Call Appointment Rate (%)</Label>
                     <Input
-                      id="appointmentRate"
+                      id="callAppt"
                       type="number"
                       step="0.1"
-                      value={appointmentRate}
-                      onChange={(e)=> setAppointmentRate(Number(e.target.value))}
+                      value={callAppt}
+                      onChange={(e) => setCallAppt(Number(e.target.value))}
                       className="text-right h-10 rounded-lg border-2 focus:border-[var(--c-blue)]"
                     />
                   </div>
@@ -750,7 +816,7 @@ const Index = () => {
                             <span className="text-right font-semibold">{formatNumber(results.RepLI)}</span>
                           </div>
                           <div className="flex justify-between py-3 border-b border-gray-100">
-                            <span className="font-medium">Connection Requests to Send</span>
+                            <span className="font-medium">Connection Requests to Send (LinkedIn)</span>
                             <span className="text-right font-semibold">{formatNumber(results.ConnReq)}</span>
                           </div>
                         </>
@@ -768,7 +834,7 @@ const Index = () => {
                           </div>
                           <div className="flex justify-between py-3 border-b border-gray-100">
                             <span className="font-medium">Email Contacts Required</span>
-                            <span className="text-right font-semibold">{formatNumber(results.VerEM)}</span>
+                            <span className="text-right font-semibold">{formatNumber(results.EmailContacts)}</span>
                           </div>
                         </>
                       )}
@@ -776,16 +842,16 @@ const Index = () => {
                       {channels !== 'LinkedIn' && channels !== 'Email' && (
                         <>
                           <div className="flex justify-between py-3 border-b border-gray-100">
-                            <span className="font-medium">Positive Responses from Calls</span>
+                            <span className="font-medium">Positive Responses from Call</span>
                             <span className="text-right font-semibold">{formatNumber(results.PosCall)}</span>
                           </div>
                           <div className="flex justify-between py-3 border-b border-gray-100">
-                            <span className="font-medium">Total Responses from Calls</span>
-                            <span className="text-right font-semibold">{formatNumber(results.RepCall)}</span>
+                            <span className="font-medium">Total Responses from Call</span>
+                            <span className="text-right font-semibold">{formatNumber(results.TotalCallResp)}</span>
                           </div>
                           <div className="flex justify-between py-3 border-b border-gray-100">
-                            <span className="font-medium">Phone Contacts Required</span>
-                            <span className="text-right font-semibold">{formatNumber(results.VerCall)}</span>
+                            <span className="font-medium">Phone Contacts Required (Call)</span>
+                            <span className="text-right font-semibold">{formatNumber(results.PhoneContactsReq)}</span>
                           </div>
                         </>
                       )}
@@ -804,15 +870,15 @@ const Index = () => {
                       </div>
                       
                       {channels !== 'Email' && channels !== 'Call' && (
-                        <div className={`flex justify-between py-3 border-b border-gray-100 ${results.capOK !== 'OK' ? 'text-red-500' : 'text-emerald-500'}`}>
+                        <div className={`flex justify-between py-3 border-b border-gray-100 ${results.capOK_LI !== 'OK' ? 'text-red-500' : 'text-emerald-500'}`}>
                           <span className="flex items-center gap-2 font-medium">
-                            {results.capOK === 'OK' ? 
+                            {results.capOK_LI === 'OK' ? 
                               <CheckCircle className="w-5 h-5" /> : 
                               <AlertTriangle className="w-5 h-5" />
                             }
                             LinkedIn Capacity Check
                           </span>
-                          <span className="text-right font-bold">{results.capOK}</span>
+                          <span className="text-right font-bold">{results.capOK_LI}</span>
                         </div>
                       )}
 
@@ -859,9 +925,29 @@ const Index = () => {
           </div>
         )}
 
+        {/* Campaign Mind-Map */}
+        {results && icpRows.length > 0 && (
+          <section className="mt-8">
+            <h2 className="text-2xl font-bold mb-3 text-[var(--c-blue-dark)]">Campaign Flow</h2>
+            <div className="h-[500px] bg-white rounded-xl shadow-md border-2">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                fitView
+                className="rounded-xl"
+              >
+                <Background />
+                <Controls />
+              </ReactFlow>
+            </div>
+          </section>
+        )}
+
         {/* Footer */}
         <div className="text-center text-[var(--c-gray)]">
-          <p>Benchmarks: email reply 3%, LI reply 20%, call pickup 22%, appointment 2.3%. Edit under Advanced.</p>
+          <p>Benchmarks updated for V9: email reply 3%, LI reply 20%, call pickup 22%, appointment 2.3%. Edit under Advanced.</p>
         </div>
       </div>
     </div>
