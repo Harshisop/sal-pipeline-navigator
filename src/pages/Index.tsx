@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,14 +76,16 @@ const initialEdges: Edge[] = [
 const Index = () => {
   const [salGoal, setSalGoal] = useState<number | undefined>(undefined);
   const [valueSal, setValueSal] = useState<number | undefined>(undefined);
-  const [period, setPeriod] = useState<string | undefined>(undefined);
+  const [period, setPeriod] = useState<string>("3");
   const [results, setResults] = useState<Results>(defaultResults);
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [isMindMapOpen, setIsMindMapOpen] = useState(false);
 
   const calculate = async () => {
-    if (!salGoal || !period) {
+    const periodMonths: number = Number(period);
+    
+    if (!salGoal || !periodMonths) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -139,7 +142,6 @@ const Index = () => {
 
     // Auto-save campaign and weekly targets to Supabase
     try {
-      const periodMonths = Number(period); // Fixed: Ensure period is converted to number
       const startDate = new Date().toISOString().split('T')[0]; // today as start date
       
       // Create or update campaign
@@ -284,7 +286,7 @@ const Index = () => {
             </div>
             <div>
               <Label htmlFor="campaignPeriod">Campaign Period (Months)</Label>
-              <Select onValueChange={setPeriod}>
+              <Select value={period} onValueChange={setPeriod}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
@@ -338,3 +340,4 @@ const Index = () => {
 };
 
 export default Index;
+
