@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,7 @@ const Index = () => {
     const capOK_LI = Math.ceil(PosLI / ConnReq * 100);
     const capOK_Call = Math.ceil(PosCall / PhoneContactsReq * 100);
 
-    const pipeline = salGoal * valueSal;
+    const pipeline = salGoal * (valueSal || 0);
 
     const calculatedResults = {
       Y,
@@ -138,7 +139,7 @@ const Index = () => {
 
     // Auto-save campaign and weekly targets to Supabase
     try {
-      const periodMonths = parseInt(period);
+      const periodMonths = Number(period); // Fixed: Ensure period is converted to number
       const startDate = new Date().toISOString().split('T')[0]; // today as start date
       
       // Create or update campaign
