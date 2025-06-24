@@ -9,7 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      campaigns: {
+        Row: {
+          created_at: string | null
+          go_live: string | null
+          id: string
+          name: string | null
+          period_months: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          go_live?: string | null
+          id?: string
+          name?: string | null
+          period_months?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          go_live?: string | null
+          id?: string
+          name?: string | null
+          period_months?: number | null
+        }
+        Relationships: []
+      }
+      roi_weeks: {
+        Row: {
+          achieved: number | null
+          campaign_id: string | null
+          created_at: string | null
+          id: string
+          kpi: string | null
+          month: number | null
+          target: number | null
+          week: number | null
+          year: number | null
+        }
+        Insert: {
+          achieved?: number | null
+          campaign_id?: string | null
+          created_at?: string | null
+          id?: string
+          kpi?: string | null
+          month?: number | null
+          target?: number | null
+          week?: number | null
+          year?: number | null
+        }
+        Update: {
+          achieved?: number | null
+          campaign_id?: string | null
+          created_at?: string | null
+          id?: string
+          kpi?: string | null
+          month?: number | null
+          target?: number | null
+          week?: number | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_weeks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
