@@ -4,23 +4,29 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Calculator, TrendingUp, Users, Target, ArrowRight } from "lucide-react";
+import { Plus, Calculator, TrendingUp, Users, Target } from "lucide-react";
 
-interface Pipeline {
+interface Campaign {
   id: string;
-  target_sales: number;
-  expected_timeline_months: number;
-  created_at: string;
-  calculated_data: any;
+  name: string;
+  status: 'active' | 'paused' | 'completed';
+  createdAt: string;
+  metrics?: {
+    leads: number;
+    conversion: number;
+    revenue: number;
+  };
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
-  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [hasUsedCalculator, setHasUsedCalculator] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Get current user
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -29,17 +35,36 @@ export default function Dashboard() {
       }
       setUser(user);
       
-      // Fetch user's pipelines
-      const { data: pipelineData, error } = await supabase
-        .from('pipeline_reports')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      // Simulate fetching user data
+      // In a real app, you'd fetch from your database
+      const mockCampaigns: Campaign[] = [
+        {
+          id: '1',
+          name: 'Enterprise Outreach Q4',
+          status: 'active',
+          createdAt: '2024-01-15',
+          metrics: { leads: 156, conversion: 12.5, revenue: 45000 }
+        },
+        {
+          id: '2', 
+          name: 'SMB Lead Generation',
+          status: 'active',
+          createdAt: '2024-01-10',
+          metrics: { leads: 89, conversion: 8.7, revenue: 22000 }
+        }
+      ];
       
-      if (error) {
-        console.error('Error fetching pipelines:', error);
+      // Simulate different user states for demo
+      const userEmail = user.email || '';
+      if (userEmail.includes('new')) {
+        setCampaigns([]);
+        setHasUsedCalculator(false);
+      } else if (userEmail.includes('empty')) {
+        setCampaigns([]);
+        setHasUsedCalculator(true);
       } else {
-        setPipelines(pipelineData || []);
+        setCampaigns(mockCampaigns);
+        setHasUsedCalculator(true);
       }
       
       setLoading(false);
@@ -53,16 +78,13 @@ export default function Dashboard() {
     navigate('/auth');
   };
 
-  const handlePipelineClick = (pipeline: Pipeline) => {
-    // Store pipeline data in localStorage for the report page
-    localStorage.setItem('currentPipeline', JSON.stringify(pipeline));
-    navigate('/report');
-  };
-
-  const handleCalculateNewPipeline = () => {
-    // Clear any existing pipeline data and go to calculator
-    localStorage.removeItem('currentPipeline');
-    navigate('/');
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (loading) {
@@ -109,36 +131,99 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Pipelines Section */}
+        {/* Quick Stats */}
+        {campaigns.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Users className="h-6 w-6 text-[var(--c-blue)]" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-[var(--c-gray)]">Total Leads</p>
+                    <p className="text-2xl font-semibold text-[var(--c-text)]">
+                      {campaigns.reduce((sum, c) => sum + (c.metrics?.leads || 0), 0)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-[var(--c-gray)]">Avg Conversion</p>
+                    <p className="text-2xl font-semibold text-[var(--c-text)]">
+                      {campaigns.length > 0 
+                        ? (campaigns.reduce((sum, c) => sum + (c.metrics?.conversion || 0), 0) / campaigns.length).toFixed(1)
+                        : 0}%
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-[var(--c-lime)]/20 rounded-lg">
+                    <Target className="h-6 w-6 text-green-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-[var(--c-gray)]">Total Revenue</p>
+                    <p className="text-2xl font-semibold text-[var(--c-text)]">
+                      ${campaigns.reduce((sum, c) => sum + (c.metrics?.revenue || 0), 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Your Existing SAL Campaigns */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-2xl text-[var(--c-text)]">Your SAL Pipelines</CardTitle>
+            <CardTitle className="text-2xl text-[var(--c-text)]">Your Existing SAL Campaigns</CardTitle>
           </CardHeader>
           <CardContent>
-            {pipelines.length > 0 ? (
+            {campaigns.length > 0 ? (
               <div className="space-y-4">
-                {pipelines.map((pipeline) => (
-                  <div 
-                    key={pipeline.id} 
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-50"
-                    onClick={() => handlePipelineClick(pipeline)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-[var(--c-blue)]/10 rounded-lg flex items-center justify-center">
-                          <Target className="h-6 w-6 text-[var(--c-blue)]" />
+                {campaigns.map((campaign) => (
+                  <div key={campaign.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="font-semibold text-[var(--c-text)]">{campaign.name}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
+                          {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                        </span>
+                      </div>
+                      <span className="text-sm text-[var(--c-gray)]">
+                        Created {new Date(campaign.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    {campaign.metrics && (
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-[var(--c-gray)]">Leads: </span>
+                          <span className="font-medium text-[var(--c-text)]">{campaign.metrics.leads}</span>
                         </div>
                         <div>
-                          <h3 className="font-semibold text-[var(--c-text)]">
-                            Pipeline - {pipeline.target_sales} SALs
-                          </h3>
-                          <p className="text-sm text-[var(--c-gray)]">
-                            {pipeline.expected_timeline_months} months timeline • Created {new Date(pipeline.created_at).toLocaleDateString()}
-                          </p>
+                          <span className="text-[var(--c-gray)]">Conversion: </span>
+                          <span className="font-medium text-[var(--c-text)]">{campaign.metrics.conversion}%</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--c-gray)]">Revenue: </span>
+                          <span className="font-medium text-[var(--c-text)]">${campaign.metrics.revenue.toLocaleString()}</span>
                         </div>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-[var(--c-gray)]" />
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -148,29 +233,58 @@ export default function Dashboard() {
                   <Target className="h-8 w-8 text-[var(--c-gray)]" />
                 </div>
                 <h3 className="text-lg font-medium text-[var(--c-text)] mb-2">
-                  No pipelines yet
+                  You have no active SAL pipelines yet
                 </h3>
                 <p className="text-[var(--c-gray)] mb-6">
-                  Create your first SAL pipeline to get started with tracking your sales process.
+                  Get started by creating your first campaign or using our calculator to plan your pipeline.
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Action Button */}
-        <div className="flex justify-center">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button 
-            onClick={handleCalculateNewPipeline}
+            onClick={() => navigate('/')} 
             className="btn-blue flex items-center space-x-2"
             size="lg"
           >
             <Calculator className="h-5 w-5" />
-            <span>
-              {pipelines.length > 0 ? 'Calculate New Pipeline' : 'Calculate New Pipeline'}
-            </span>
+            <span>Calculate SAL Pipeline</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="flex items-center space-x-2 border-[var(--c-blue)] text-[var(--c-blue)] hover:bg-[var(--c-blue)] hover:text-white"
+            size="lg"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create New Pipeline</span>
           </Button>
         </div>
+
+        {/* Getting Started Section for New Users */}
+        {!hasUsedCalculator && (
+          <Card className="mt-8 bg-gradient-to-r from-[var(--c-blue)]/5 to-[var(--c-lime)]/5 border-[var(--c-blue)]/20">
+            <CardContent className="p-8 text-center">
+              <h3 className="text-xl font-semibold text-[var(--c-text)] mb-3">
+                Ready to optimize your sales pipeline?
+              </h3>
+              <p className="text-[var(--c-gray)] mb-6 max-w-2xl mx-auto">
+                Our SAL calculator helps you determine the right metrics and targets for your sales pipeline. 
+                Get personalized recommendations based on your goals and industry benchmarks.
+              </p>
+              <Button 
+                onClick={() => navigate('/')} 
+                className="btn-blue"
+                size="lg"
+              >
+                Get Started with Calculator
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
