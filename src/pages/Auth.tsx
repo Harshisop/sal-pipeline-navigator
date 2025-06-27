@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,17 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        navigate('/dashboard');
+      }
+    };
+    checkUser();
+  }, [navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +33,7 @@ const AuthPage: React.FC = () => {
       // Login
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
-      else navigate("/"); // redirect to main page
+      else navigate("/dashboard"); // redirect to dashboard instead of main page
     } else {
       // Signup
       const { data, error } = await supabase.auth.signUp({ email, password });
@@ -32,7 +43,7 @@ const AuthPage: React.FC = () => {
         if (data.user?.id) {
           await supabase.from("profiles").insert([{ id: data.user.id, username }]);
         }
-        navigate("/");
+        navigate("/dashboard"); // redirect to dashboard instead of main page
       }
     }
   };
@@ -303,4 +314,4 @@ const AuthPage: React.FC = () => {
   );
 };
 
-export default AuthPage; 
+export default AuthPage;
