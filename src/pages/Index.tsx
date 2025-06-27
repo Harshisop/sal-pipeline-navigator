@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle, Calculator, TrendingUp, Download, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ICPModal from '@/components/ICPModal';
 import {
   ReactFlow,
@@ -23,6 +23,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 interface Results {
   Y: number;
@@ -59,6 +60,7 @@ interface ICPData {
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Form state
   const [period, setPeriod] = useState<string>('3 months');
@@ -98,6 +100,33 @@ const Index = () => {
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  const [user, setUser] = useState<User | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        // Fetch username from profiles table
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', data.user.id)
+          .single();
+        setUsername(profile?.username || null);
+      } else {
+        setUsername(null);
+      }
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setUsername(null);
+    navigate('/');
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -404,6 +433,21 @@ const Index = () => {
             />
             <div className="h-6 w-px bg-gray-300"></div>
             <span className="text-lg font-semibold text-[var(--c-text)]">Pipeline Estimator</span>
+          </div>
+          <div className="ml-auto flex items-center gap-4">
+            {user ? (
+              <>
+                <span className="flex items-center gap-2 text-gray-700 font-medium">
+                  <UserIcon className="w-6 h-6 text-blue-600" />
+                  Hey{username ? `, ${username}` : ''}
+                </span>
+                <Button variant="outline" onClick={handleLogout} className="rounded-xl">Logout</Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" className="rounded-xl">Login / Signup</Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
