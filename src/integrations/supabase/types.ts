@@ -9,22 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
-    }
+      pipeline_reports: {
+        Row: {
+          id: string;
+          calculated_data: Json;
+          target_sales: number;
+          expected_timeline_months: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          calculated_data: Json;
+          target_sales: number;
+          expected_timeline_months: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          calculated_data?: Json;
+          target_sales?: number;
+          expected_timeline_months?: number;
+          created_at?: string;
+        };
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
 type DefaultSchema = Database[Extract<keyof Database, "public">]
 

@@ -22,6 +22,7 @@ import {
   Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Results {
   Y: number;
@@ -126,10 +127,10 @@ const Index = () => {
     return true;
   };
 
-  const calculate = () => {
+  const calculate = async () => {
     if (!validateSplit()) return;
 
-    const periodMonths = parseInt(period.split(' ')[0]);
+    const periodMonths = hasOutbound === 'Yes (we know our offers)' ? 3 : 5;
     const showRateDecimal = showRate / 100;
     const salPerMtgDecimal = salPerMtg / 100;
     
@@ -189,6 +190,31 @@ const Index = () => {
     };
 
     setResults(newResults);
+
+    // --- Supabase Insert ---
+    try {
+      const { data, error } = await supabase
+        .from('pipeline_reports')
+        .insert([
+          {
+            calculated_data: newResults,
+            target_sales: salGoal,
+            expected_timeline_months: periodMonths,
+          },
+        ])
+        .select()
+        .single();
+      if (error) {
+        throw error;
+      }
+      // Do not redirect to /report. Stay on the page and show results as before.
+    } catch (err: any) {
+      toast({
+        title: 'Supabase Error',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleICPSave = (data: ICPData) => {
