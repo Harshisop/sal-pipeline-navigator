@@ -39,10 +39,7 @@ const AuthPage: React.FC = () => {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
       else {
-        // Insert profile
-        if (data.user?.id) {
-          await supabase.from("profiles").insert([{ id: data.user.id, username }]);
-        }
+        // Note: profiles table insert is handled by database trigger
         navigate("/dashboard"); // redirect to dashboard instead of main page
       }
     }
