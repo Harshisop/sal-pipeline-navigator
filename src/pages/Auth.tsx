@@ -33,17 +33,21 @@ const AuthPage: React.FC = () => {
       // Login
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
-      else navigate("/dashboard"); // redirect to dashboard instead of main page
+      else navigate("/dashboard");
     } else {
       // Signup
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            username: username
+          }
+        }
+      });
       if (error) setError(error.message);
       else {
-        // Insert profile
-        if (data.user?.id) {
-          await supabase.from("profiles").insert([{ id: data.user.id, username }]);
-        }
-        navigate("/dashboard"); // redirect to dashboard instead of main page
+        navigate("/dashboard");
       }
     }
   };

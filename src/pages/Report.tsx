@@ -58,7 +58,7 @@ const Report = () => {
         return;
       }
       const latest = data[0];
-      const m = latest.expected_timeline_months;
+      const m = latest.expected_timeline_months || 3;
       const w = m * 4 + 1;
       setMonths(m);
       setWeeks(w);

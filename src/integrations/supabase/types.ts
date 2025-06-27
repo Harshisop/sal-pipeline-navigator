@@ -33,6 +33,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_reports: {
+        Row: {
+          calculated_data: Json | null
+          created_at: string | null
+          expected_timeline_months: number | null
+          id: string
+          target_sales: number | null
+          user_id: string | null
+        }
+        Insert: {
+          calculated_data?: Json | null
+          created_at?: string | null
+          expected_timeline_months?: number | null
+          id?: string
+          target_sales?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          calculated_data?: Json | null
+          created_at?: string | null
+          expected_timeline_months?: number | null
+          id?: string
+          target_sales?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       roi_weeks: {
         Row: {
           achieved: number | null

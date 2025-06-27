@@ -221,28 +221,30 @@ const Index = () => {
     setResults(newResults);
 
     // --- Supabase Insert ---
-    try {
-      const { data, error } = await supabase
-        .from('pipeline_reports')
-        .insert([
-          {
-            calculated_data: newResults,
-            target_sales: salGoal,
-            expected_timeline_months: periodMonths,
-          },
-        ])
-        .select()
-        .single();
-      if (error) {
-        throw error;
+    if (user) {
+      try {
+        const { data, error } = await supabase
+          .from('pipeline_reports')
+          .insert([
+            {
+              user_id: user.id,
+              calculated_data: newResults,
+              target_sales: salGoal,
+              expected_timeline_months: periodMonths,
+            },
+          ])
+          .select()
+          .single();
+        if (error) {
+          throw error;
+        }
+      } catch (err: any) {
+        toast({
+          title: 'Supabase Error',
+          description: err.message,
+          variant: 'destructive',
+        });
       }
-      // Do not redirect to /report. Stay on the page and show results as before.
-    } catch (err: any) {
-      toast({
-        title: 'Supabase Error',
-        description: err.message,
-        variant: 'destructive',
-      });
     }
   };
 
