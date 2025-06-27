@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Carousel,
   CarouselContent,
@@ -10,7 +11,6 @@ import {
   CarouselPrevious,
   CarouselNext,
 } from '@/components/ui/carousel';
-import { supabase } from '@/integrations/supabase/client';
 
 const METRICS = [
   'Meetings to Book (PQLs)',
@@ -33,42 +33,49 @@ const METRICS = [
 
 const glassStyle =
   'bg-white/70 backdrop-blur-lg border border-gray-200 shadow-xl rounded-2xl';
-const accentLeft = 'bg-gradient-to-br from-green-200/70 to-blue-100/70';
-const accentTarget = 'bg-gradient-to-br from-gray-100/80 to-blue-50/80';
-const accentAchieved = 'bg-gradient-to-br from-blue-100/80 to-purple-50/80';
 
 const Report = () => {
+  const navigate = useNavigate();
   const [achieved, setAchieved] = useState<string[][]>([]);
   const [monthlyAchieved, setMonthlyAchieved] = useState<string[]>([]);
   const [weeks, setWeeks] = useState(0);
   const [months, setMonths] = useState(0);
   const [weeklyTargets, setWeeklyTargets] = useState<number[][]>([]);
   const [loading, setLoading] = useState(true);
+  const [pipelineData, setPipelineData] = useState<any>(null);
 
   useEffect(() => {
-    (async () => {
+    const loadPipelineData = () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('pipeline_reports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
-      if (error || !data || data.length === 0) {
-        setLoading(false);
-        return;
+      
+      // Try to get pipeline data from localStorage first
+      const storedPipeline = localStorage.getItem('currentPipeline');
+      if (storedPipeline) {
+        const pipeline = JSON.parse(storedPipeline);
+        setPipelineData(pipeline);
+        setupReportData(pipeline);
+      } else {
+        // If no stored pipeline, redirect to dashboard
+        navigate('/dashboard');
       }
-      const latest = data[0];
-      const m = latest.expected_timeline_months || 3;
+      
+      setLoading(false);
+    };
+
+    const setupReportData = (pipeline: any) => {
+      const m = pipeline.expected_timeline_months || 3;
       const w = m * 4 + 1;
       setMonths(m);
       setWeeks(w);
-      // For each metric, divide the value from calculated_data across weeks (unevenly if needed)
-      const calc = latest.calculated_data || {};
+      
+      // For each metric, divide the value from calculated_data across weeks
+      const calc = pipeline.calculated_data || {};
       const metricKeys = [
         'Y', 'Y_li', 'Y_em', 'Y_call', 'PosLI', 'RepLI', 'ConnReq',
         'PosEM', 'RepEM', 'EmailContacts', 'PosCall', 'TotalCallResp',
         'PhoneContactsReq', 'TAM_LI', 'TAM_EM', 'TAM_Call',
       ];
+      
       const targetsPerMetric: number[][] = metricKeys.map((key) => {
         const total = Math.round(Number(calc[key]) || 0);
         // Distribute total across weeks as evenly as possible
@@ -76,12 +83,14 @@ const Report = () => {
         const remainder = total % w;
         return Array.from({ length: w }).map((_, i) => base + (i < remainder ? 1 : 0));
       });
+      
       setWeeklyTargets(targetsPerMetric);
       setAchieved(Array(METRICS.length).fill(0).map(() => Array(w).fill('')));
       setMonthlyAchieved(Array(m).fill(''));
-      setLoading(false);
-    })();
-  }, []);
+    };
+
+    loadPipelineData();
+  }, [navigate]);
 
   const getTarget = (metricIdx: number, weekIdx: number) => {
     return weeklyTargets[metricIdx]?.[weekIdx] || 0;
@@ -94,6 +103,7 @@ const Report = () => {
       return copy;
     });
   };
+
   const handleMonthlyInput = (i: number, value: string) => {
     setMonthlyAchieved((prev) => {
       const copy = [...prev];
@@ -103,6 +113,20 @@ const Report = () => {
   };
 
   if (loading) return <div className="p-12 text-center text-xl">Loading...</div>;
+
+  if (!pipelineData) {
+    return (
+      <div className="min-h-screen bg-[var(--c-bg)] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">No Pipeline Selected</h1>
+          <p className="text-gray-600 mb-6">Please select a pipeline from your dashboard.</p>
+          <Link to="/dashboard">
+            <Button>Go to Dashboard</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)]">
@@ -118,16 +142,20 @@ const Report = () => {
             <div className="h-6 w-px bg-gray-300"></div>
             <span className="text-lg font-semibold text-[var(--c-text)]">Campaign MIS Dashboard</span>
           </div>
-          <div className="ml-auto">
-            <Link to="/">
+          <div className="ml-auto flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Pipeline: {pipelineData.target_sales} SALs • {pipelineData.expected_timeline_months} months
+            </div>
+            <Link to="/dashboard">
               <Button variant="outline" className="rounded-xl">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Calculator
+                Back to Dashboard
               </Button>
             </Link>
           </div>
         </div>
       </header>
+
       <div className="max-w-[98vw] mx-auto space-y-8 py-12 px-2">
         {/* Monthly Target vs Achieved Table */}
         <div className="mb-12">
@@ -145,7 +173,9 @@ const Report = () => {
                 {Array.from({ length: months }).map((_, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2 font-semibold text-lg">Month {i + 1}</td>
-                    <td className="px-4 py-2 text-blue-700 font-bold text-lg">{weeklyTargets[i * 4] ? weeklyTargets[i * 4].reduce((a, b) => a + b, 0) : 0}</td>
+                    <td className="px-4 py-2 text-blue-700 font-bold text-lg">
+                      {Math.round((pipelineData.target_sales || 0) / months)}
+                    </td>
                     <td className="px-4 py-2">
                       <input
                         type="text"
@@ -161,6 +191,7 @@ const Report = () => {
             </table>
           </div>
         </div>
+
         {/* Main Dashboard Card */}
         <Card className="card">
           <CardHeader>
@@ -182,16 +213,12 @@ const Report = () => {
                       <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto">
                         {METRICS.map((label, i) => (
                           <div key={i} className="flex flex-row items-center gap-0 w-full">
-                            {/* Left stair label, perfectly aligned and sized with card */}
-                            <div
-                              className={`flex items-center pl-4 font-medium text-base text-gray-900 min-h-[60px] min-w-[220px] max-w-[220px] bg-white rounded shadow-sm border border-gray-200`}
-                            >
+                            {/* Left stair label */}
+                            <div className="flex items-center pl-4 font-medium text-base text-gray-900 min-h-[60px] min-w-[220px] max-w-[220px] bg-white rounded shadow-sm border border-gray-200">
                               {label}
                             </div>
                             {/* Card for Target/Achieved */}
-                            <div
-                              className={`flex flex-col items-stretch justify-center ${glassStyle} shadow-xl rounded-2xl px-8 py-6 min-h-[110px] flex-1 ml-2`}
-                            >
+                            <div className={`flex flex-col items-stretch justify-center ${glassStyle} shadow-xl rounded-2xl px-8 py-6 min-h-[110px] flex-1 ml-2`}>
                               <div className="flex flex-row items-center justify-between mb-2">
                                 <span className="font-semibold text-gray-700 text-lg">Target</span>
                                 <span className="font-semibold text-blue-700 text-lg">{getTarget(i, weekIdx)}</span>
