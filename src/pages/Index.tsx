@@ -225,14 +225,12 @@ const Index = () => {
       try {
         const { data, error } = await supabase
           .from('pipeline_reports')
-          .insert([
-            {
-              user_id: user.id,
-              calculated_data: newResults,
-              target_sales: salGoal,
-              expected_timeline_months: periodMonths,
-            },
-          ])
+          .insert({
+            user_id: user.id,
+            calculated_data: newResults as any,
+            target_sales: salGoal,
+            expected_timeline_months: periodMonths,
+          })
           .select()
           .single();
         if (error) {
