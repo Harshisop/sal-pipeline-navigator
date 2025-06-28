@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,16 +106,10 @@ const Report = () => {
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)]">
-      {/* Header with Logo */}
+      {/* Header without logo */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center">
           <div className="flex items-center space-x-3">
-            <img 
-              src="/lovable-uploads/4bd4baaa-1f9f-456e-99ce-92e40c619011.png" 
-              alt="Cience" 
-              className="h-8"
-            />
-            <div className="h-6 w-px bg-gray-300"></div>
             <span className="text-lg font-semibold text-[var(--c-text)]">Campaign MIS Dashboard</span>
           </div>
           <div className="ml-auto">
