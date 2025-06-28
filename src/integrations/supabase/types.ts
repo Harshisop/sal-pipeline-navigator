@@ -9,134 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      campaigns: {
-        Row: {
-          created_at: string | null
-          go_live: string | null
-          id: string
-          name: string | null
-          period_months: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          go_live?: string | null
-          id?: string
-          name?: string | null
-          period_months?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          go_live?: string | null
-          id?: string
-          name?: string | null
-          period_months?: number | null
-        }
-        Relationships: []
-      }
       pipeline_reports: {
         Row: {
-          calculated_data: Json | null
-          created_at: string | null
-          expected_timeline_months: number | null
-          id: string
-          target_sales: number | null
-          user_id: string | null
-        }
+          id: string;
+          calculated_data: Json;
+          target_sales: number;
+          expected_timeline_months: number;
+          created_at: string;
+        };
         Insert: {
-          calculated_data?: Json | null
-          created_at?: string | null
-          expected_timeline_months?: number | null
-          id?: string
-          target_sales?: number | null
-          user_id?: string | null
-        }
+          id?: string;
+          calculated_data: Json;
+          target_sales: number;
+          expected_timeline_months: number;
+          created_at?: string;
+        };
         Update: {
-          calculated_data?: Json | null
-          created_at?: string | null
-          expected_timeline_months?: number | null
-          id?: string
-          target_sales?: number | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string | null
-          id: string
-          username: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id: string
-          username?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          username?: string | null
-        }
-        Relationships: []
-      }
-      roi_weeks: {
-        Row: {
-          achieved: number | null
-          campaign_id: string | null
-          created_at: string | null
-          id: string
-          kpi: string | null
-          month: number | null
-          target: number | null
-          week: number | null
-          year: number | null
-        }
-        Insert: {
-          achieved?: number | null
-          campaign_id?: string | null
-          created_at?: string | null
-          id?: string
-          kpi?: string | null
-          month?: number | null
-          target?: number | null
-          week?: number | null
-          year?: number | null
-        }
-        Update: {
-          achieved?: number | null
-          campaign_id?: string | null
-          created_at?: string | null
-          id?: string
-          kpi?: string | null
-          month?: number | null
-          target?: number | null
-          week?: number | null
-          year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roi_weeks_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
+          id?: string;
+          calculated_data?: Json;
+          target_sales?: number;
+          expected_timeline_months?: number;
+          created_at?: string;
+        };
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
 type DefaultSchema = Database[Extract<keyof Database, "public">]
 

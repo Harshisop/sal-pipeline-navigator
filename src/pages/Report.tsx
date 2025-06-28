@@ -11,7 +11,6 @@ import {
   CarouselNext,
 } from '@/components/ui/carousel';
 import { supabase } from '@/integrations/supabase/client';
-import ProjectFlowChart from '@/components/ProjectFlowChart';
 
 const METRICS = [
   'Meetings to Book (PQLs)',
@@ -34,6 +33,9 @@ const METRICS = [
 
 const glassStyle =
   'bg-white/70 backdrop-blur-lg border border-gray-200 shadow-xl rounded-2xl';
+const accentLeft = 'bg-gradient-to-br from-green-200/70 to-blue-100/70';
+const accentTarget = 'bg-gradient-to-br from-gray-100/80 to-blue-50/80';
+const accentAchieved = 'bg-gradient-to-br from-blue-100/80 to-purple-50/80';
 
 const Report = () => {
   const [achieved, setAchieved] = useState<string[][]>([]);
@@ -42,7 +44,6 @@ const Report = () => {
   const [months, setMonths] = useState(0);
   const [weeklyTargets, setWeeklyTargets] = useState<number[][]>([]);
   const [loading, setLoading] = useState(true);
-  const [calculatedData, setCalculatedData] = useState<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -57,12 +58,10 @@ const Report = () => {
         return;
       }
       const latest = data[0];
-      const m = latest.expected_timeline_months || 0;
+      const m = latest.expected_timeline_months;
       const w = m * 4 + 1;
       setMonths(m);
       setWeeks(w);
-      setCalculatedData(latest.calculated_data);
-      
       // For each metric, divide the value from calculated_data across weeks (unevenly if needed)
       const calc = latest.calculated_data || {};
       const metricKeys = [
@@ -72,6 +71,7 @@ const Report = () => {
       ];
       const targetsPerMetric: number[][] = metricKeys.map((key) => {
         const total = Math.round(Number(calc[key]) || 0);
+        // Distribute total across weeks as evenly as possible
         const base = Math.floor(total / w);
         const remainder = total % w;
         return Array.from({ length: w }).map((_, i) => base + (i < remainder ? 1 : 0));
@@ -106,10 +106,16 @@ const Report = () => {
 
   return (
     <div className="min-h-screen bg-[var(--c-bg)]">
-      {/* Header without logo */}
+      {/* Header with Logo */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center">
           <div className="flex items-center space-x-3">
+            <img 
+              src="/lovable-uploads/4bd4baaa-1f9f-456e-99ce-92e40c619011.png" 
+              alt="Cience" 
+              className="h-8"
+            />
+            <div className="h-6 w-px bg-gray-300"></div>
             <span className="text-lg font-semibold text-[var(--c-text)]">Campaign MIS Dashboard</span>
           </div>
           <div className="ml-auto">
@@ -122,18 +128,7 @@ const Report = () => {
           </div>
         </div>
       </header>
-      
       <div className="max-w-[98vw] mx-auto space-y-8 py-12 px-2">
-        {/* Project Flow Chart */}
-        {calculatedData && (
-          <div className="mb-12">
-            <ProjectFlowChart 
-              calculatedData={calculatedData} 
-              timelineMonths={months} 
-            />
-          </div>
-        )}
-
         {/* Monthly Target vs Achieved Table */}
         <div className="mb-12">
           <h3 className="text-2xl font-bold mb-4">Monthly Target vs Achieved</h3>
@@ -150,7 +145,7 @@ const Report = () => {
                 {Array.from({ length: months }).map((_, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2 font-semibold text-lg">Month {i + 1}</td>
-                    <td className="px-4 py-2 text-blue-700 font-bold text-lg">{weeklyTargets[0] ? weeklyTargets[0].slice(i * 4, (i + 1) * 4).reduce((a, b) => a + b, 0) : 0}</td>
+                    <td className="px-4 py-2 text-blue-700 font-bold text-lg">{weeklyTargets[i * 4] ? weeklyTargets[i * 4].reduce((a, b) => a + b, 0) : 0}</td>
                     <td className="px-4 py-2">
                       <input
                         type="text"
@@ -166,7 +161,6 @@ const Report = () => {
             </table>
           </div>
         </div>
-        
         {/* Main Dashboard Card */}
         <Card className="card">
           <CardHeader>
